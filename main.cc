@@ -82,11 +82,11 @@ public:
     }
 
     virtual void Part(const Position &pos, const ::Part &part) {
-        printf(
-               "G0 X%.3f Y%.3f E%.3f Z" Z_HOVER_DISPENSER " ; comp=%s val=%s\n"  // move to new position, above board
+        // move to new position, above board
+        printf("G0 X%.3f Y%.3f E%.3f Z" Z_HOVER_DISPENSER " ; comp=%s val=%s\n",
                // "G1 Z" Z_HIGH_UP_DISPENSER "\n", // high above to have paste is well separated
-               ,pos.x, pos.y, part.angle, part.component_name.c_str(), part.value.c_str()
-               );
+               pos.x, pos.y, part.angle,
+               part.component_name.c_str(), part.value.c_str());
     }
 
     virtual void Finish() {

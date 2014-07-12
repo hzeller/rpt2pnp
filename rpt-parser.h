@@ -21,6 +21,7 @@ public:
     // Can be called within 'compponent' or 'pad'
     virtual void Position(float x, float y) = 0;
     virtual void Size(float w, float h) = 0;
+    virtual void Value(const std::string &name) = 0;
 
     // If this pad doesn't have a pad, then this drill size is 0.0
     virtual void Drill(float size) = 0;

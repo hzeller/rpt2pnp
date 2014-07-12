@@ -14,6 +14,7 @@ struct Position {
 struct Part {
     Part() : pos(), angle(0) {}
     std::string component_name;
+    std::string value;
     Position pos;
     float angle;
 };

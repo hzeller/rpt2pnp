@@ -53,6 +53,11 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
             (*input) >> angle;
             event->Orientation(angle);
         }
+        else if (token == "value") {
+            std::string value;
+            (*input) >> value;
+            event->Value(value);
+        }
     }
     return true;
 }
