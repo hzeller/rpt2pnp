@@ -20,12 +20,12 @@ public:
           collected_parts_(parts), board_dimension_(board_dimension) {}
 
 protected:
-    virtual void StartBoard(float max_x, float max_y) {
+    void StartBoard(float max_x, float max_y) override {
         board_dimension_->w = max_y;
         board_dimension_->h = max_x;
     }
 
-    virtual void StartComponent(const std::string &c) {
+    void StartComponent(const std::string &c) override {
         in_pad_ = false;
         current_part_ = new Part();
         current_part_->component_name = c;
@@ -33,11 +33,15 @@ protected:
         angle_ = 0;
     }
 
-    virtual void Value(const std::string &c) {
+    void Value(const std::string &c) override {
         current_part_->value = c;
     }
 
-    virtual void EndComponent() {
+    void Footprint(const std::string &c) override {
+        current_part_->footprint = c;
+    }
+
+    void EndComponent() override {
         if (drillSum > 0)
             delete current_part_;  // through-hole. We're not interested in that.
         else
@@ -46,14 +50,14 @@ protected:
     }
 
     // Not caring about pads right now.
-    virtual void StartPad(const std::string &c) {
+    void StartPad(const std::string &c) override {
         in_pad_ = true;
     }
-    virtual void EndPad() {
+    void EndPad() override {
         in_pad_ = false;
     }
 
-    virtual void Position(float x, float y) {
+    void Position(float x, float y) override {
         if (in_pad_) {
             rotateXY(&x, &y);
             pad_position_.Set(x, y);
@@ -62,7 +66,8 @@ protected:
             current_part_->pos.y = y;
         }
     }
-    virtual void Size(float w, float h) {
+
+    void Size(float w, float h) override {
         if (in_pad_) {
             float x, y;
             x = pad_position_.x - w/2;
@@ -80,11 +85,11 @@ protected:
         }
     }
 
-    virtual void Drill(float size) {
+    void Drill(float size) override {
         drillSum += size; // looking for nonzero drill size
     }
 
-    virtual void Orientation(float angle) {
+    void Orientation(float angle) override {
         if (in_pad_)
             return;
         // Angle is in degrees, make that radians.

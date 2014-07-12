@@ -48,7 +48,7 @@ void PostScriptPrinter::PrintPart(const Part &part) {
            part.bounding_box.p1.x - part.bounding_box.p0.x,
            part.bounding_box.p1.y - part.bounding_box.p0.y,
            part.bounding_box.p0.x, part.bounding_box.p0.y,
-           part.value.c_str(),
+           (part.footprint + "@" + part.value).c_str(),
            part.component_name.c_str(),
            part.angle, part.pos.x, part.pos.y);
 }

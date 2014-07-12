@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "board.h"
 #include "postscript-printer.h"
@@ -25,29 +26,48 @@ static int usage(const char *prog) {
             "Options:\n"
             "\t-p      : Output as PostScript.\n"
             "\t-c      : Output corner DryRun G-Code.\n"
+            "\t-l      : List different components + count found on board\n"
             "\t-d <ms> : Dispensing init time ms (default %.1f)\n"
             "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
             prog, minimum_milliseconds, area_to_milliseconds);
     return 1;
 }
 
+void CountComponents(const Board::PartList& list) {
+    int longest_string = 0;
+    std::map<std::string, int> counts;
+    for (auto* part : list) {
+        const std::string key = part->footprint + "@" + part->value;
+        longest_string = std::max(longest_string, (int) key.length());
+        counts[key]++;
+    }
+    for (auto& part_count : counts) {
+        printf("%-*s %3d\n", longest_string, part_count.first.c_str(),
+               part_count.second);
+    }
+}
+
 int main(int argc, char *argv[]) {
     enum OutputType {
         OUT_DISPENSING,
         OUT_CORNER_GCODE,
-        OUT_POSTSCRIPT
+        OUT_POSTSCRIPT,
+        OUT_COMPONENT_LIST,
     } output_type = OUT_DISPENSING;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
     int opt;
-    while ((opt = getopt(argc, argv, "pcd:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "pcld:D:")) != -1) {
         switch (opt) {
         case 'p':
             output_type = OUT_POSTSCRIPT;
             break;
         case 'c':
             output_type = OUT_CORNER_GCODE;
+            break;
+        case 'l':
+            output_type = OUT_COMPONENT_LIST;
             break;
         case 'd':
             start_ms = atof(optarg);
@@ -69,12 +89,22 @@ int main(int argc, char *argv[]) {
     Board board;
     board.ReadPartsFromRpt(rpt_file);
 
-    Printer *printer;
+    if (output_type == OUT_COMPONENT_LIST) {
+        CountComponents(board.parts());
+        return 0;
+    }
+
+    Printer *printer = NULL;
     switch (output_type) {
     case OUT_DISPENSING:   printer = new GCodeDispensePrinter(start_ms, area_ms); break;
     case OUT_CORNER_GCODE: printer = new GCodeCornerIndicator(start_ms, area_ms); break;
     case OUT_POSTSCRIPT:   printer = new PostScriptPrinter(); break;
+    default:
+        break;
     }
+
+    if (printer == NULL)
+        return 1;
 
     //OptimizeParts(&parts);
 

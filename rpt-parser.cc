@@ -88,6 +88,12 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
             value = value.substr(1, value.length() - 2);
             event->Value(value);
         }
+        else if (token == "footprint") {
+            std::string value;
+            (*input) >> value;
+            value = value.substr(1, value.length() - 2);
+            event->Footprint(value);
+        }
     }
     return true;
 }

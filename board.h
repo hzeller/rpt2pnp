@@ -16,6 +16,7 @@ struct Part {
     Part() : pos(), angle(0) {}
     std::string component_name;  // component name, e.g. R42
     std::string value;           // component value, e.g. 100k
+    std::string footprint;       // footprint of component if known.
     Position pos;                // Relative to board
     Box bounding_box;            // relative to pos
     float angle;                 // Rotation
