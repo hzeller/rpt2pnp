@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <string>
+#include <vector>
 
 // Event callbacks, to be implemented by whoever is interested in that stuff.
 // These are the raw parse events, the recipient needs to gather all the
@@ -29,4 +30,6 @@ public:
     virtual void Orientation(float angle) = 0;
 };
 
+// parse RPT file, get raw parse events.
 bool RptParse(std::istream *input, ParseEventReceiver *event);
+

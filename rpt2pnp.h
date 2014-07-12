@@ -33,6 +33,11 @@ struct Part {
 float Distance(const Position& a, const Position& b);
 
 // Find acceptable route for pad visiting. Ideally solves TSP, but
-// heuristics are good as well.
+// heuristics are good as well. (optimizer.cc)
 void OptimizeParts(std::vector<const Part*> *parts);
+
+// Read an rpt file. (rpt2part.cc)
+bool ReadRptFile(const std::string& rpt_file,
+                 std::vector<const Part*> *result);
+
 #endif // RPT2PNP_H
