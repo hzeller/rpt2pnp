@@ -28,7 +28,9 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
     rotate
     0 0 moveto
     0 0 0.1 0 360 arc
+    0 0.5 0 setrgbcolor
     show
+    0 0 0 setrgbcolor
     rect
     grestore
 } def
