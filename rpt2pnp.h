@@ -11,6 +11,8 @@
 struct Position {
     Position(float xx, float yy) : x(xx), y(yy) {}
     Position() : x(0), y(0) {}
+    void Set(float xx, float yy) { x = xx; y = yy; }
+
     float x, y;
 };
 
@@ -20,12 +22,17 @@ struct Dimension {
     float w, h;
 };
 
+struct Box {
+    Position p0;
+    Position p1;
+};
+
 struct Part {
     Part() : pos(), angle(0) {}
     std::string component_name;
     std::string value;
     Position pos;
-    Dimension dimension;
+    Box bounding_box;   // relative to pos
     float angle;
     // vector<Pad> // for paste dispensing. Not needed here.
 };
@@ -38,6 +45,7 @@ void OptimizeParts(std::vector<const Part*> *parts);
 
 // Read an rpt file. (rpt2part.cc)
 bool ReadRptFile(const std::string& rpt_file,
-                 std::vector<const Part*> *result);
+                 std::vector<const Part*> *result,
+                 Dimension *board_dimension);
 
 #endif // RPT2PNP_H

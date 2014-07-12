@@ -21,17 +21,18 @@ static const float minimum_milliseconds = 50;
 static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
 
 // Smallest point from origin.
-static float offset_x = 10;
-static float offset_y = 10;
+//static float offset_x = 10;
+//static float offset_y = 10;
 
 #define Z_DISPENSING "1.7"        // Position to dispense stuff. Just above board.
 #define Z_HOVER_DISPENSER "2.5"   // Hovering above position.
 #define Z_HIGH_UP_DISPENSER "5"   // high up to separate paste.
 
+// Dispenser
 class GCodePrinter : public Printer {
 public:
     GCodePrinter(float init_ms, float area_ms) : init_ms_(init_ms), area_ms_(area_ms) {}
-    virtual void Init(float min_x, float min_y, float max_x, float max_y) {
+    virtual void Init(const Dimension& dim) {
         printf("; rpt2pnp -d %.2f -D %.2f file.rpt\n", init_ms_, area_ms_);
         // G-code preamble. Set feed rate, homing etc.
         printf(
@@ -43,11 +44,11 @@ public:
                );
     }
 
-    virtual void PrintPart(const Position &pos, const Part &part) {
+    virtual void PrintPart(const Part &part) {
         // move to new position, above board
         printf("G0 X%.3f Y%.3f E%.3f Z" Z_HOVER_DISPENSER " ; comp=%s val=%s\n",
                // "G1 Z" Z_HIGH_UP_DISPENSER "\n", // high above to have paste is well separated
-               pos.x, pos.y, part.angle,
+               part.pos.x, part.pos.y, part.angle,
                part.component_name.c_str(), part.value.c_str());
     }
 
@@ -64,8 +65,8 @@ class GCodeCornerIndicator : public Printer {
 public:
     GCodeCornerIndicator(float init_ms, float area_ms) : init_ms_(init_ms), area_ms_(area_ms) {}
 
-    virtual void Init(float min_x, float min_y, float max_x, float max_y) {
-        corners_.SetCorners(min_x, min_y, max_x, max_y);
+    virtual void Init(const Dimension& dim) {
+        corners_.SetCorners(0, 0, dim.w, dim.h);
         // G-code preamble. Set feed rate, homing etc.
         printf(
                //    "G28\n" assume machine is already homed before g-code is executed
@@ -75,8 +76,8 @@ public:
                );
     }
 
-    virtual void PrintPart(const Position &pos, const Part &part) {
-        corners_.Update(pos, part);
+    virtual void PrintPart(const Part &part) {
+        corners_.Update(part.pos, part);
     }
 
     virtual void Finish() {
@@ -145,21 +146,9 @@ int main(int argc, char *argv[]) {
 
     const char *rpt_file = argv[optind];
 
-    std::vector<const Part*> parts;    
-    ReadRptFile(rpt_file, &parts);
-
-    // The coordinates coming out of the file are mirrored, so we determine the
-    // maximum to mirror at these axes.
-    // (mmh, looks like it is only mirrored on y axis ?; Maybe this is a mess-up
-    // in the RPT file and we should mirror it there right away)
-    float min_x = parts[0]->pos.x, min_y = parts[0]->pos.y;
-    float max_x = parts[0]->pos.x, max_y = parts[0]->pos.y;
-    for (size_t i = 0; i < parts.size(); ++i) {
-        min_x = std::min(min_x, parts[i]->pos.x);
-        min_y = std::min(min_y, parts[i]->pos.y);
-        max_x = std::max(max_x, parts[i]->pos.x);
-        max_y = std::max(max_y, parts[i]->pos.y);
-    }
+    std::vector<const Part*> parts;
+    Dimension board_dimension;
+    ReadRptFile(rpt_file, &parts, &board_dimension);
 
     Printer *printer;
     switch (output_type) {
@@ -170,24 +159,18 @@ int main(int argc, char *argv[]) {
 
     OptimizeParts(&parts);
 
-    printer->Init(offset_x, offset_y,
-                  (max_x - min_x) + offset_x, (max_y - min_y) + offset_y);
+    printer->Init(board_dimension);
 
-    for (size_t i = 0; i < parts.size(); ++i) {
-        const Part *part = parts[i];
-        // We move x-coordinates relative to the smallest X.
-        // Y-coordinates are mirrored at the maximum Y (that is how the come out of the file)
-        printer->PrintPart(Position(part->pos.x + offset_x - min_x,
-                                    max_y - part->pos.y + offset_y),
-                           *part);
+    for (const Part* part : parts) {
+        printer->PrintPart(*part);
     }
 
     printer->Finish();
 
     fprintf(stderr, "Dispensed %zd parts. Total dispense time: %.1fs\n",
             parts.size(), 0.0f);
-    for (size_t i = 0; i < parts.size(); ++i) {
-        delete parts[i];
+    for (const Part* part : parts) {
+        delete part;
     }
     delete printer;
     return 0;

@@ -10,8 +10,9 @@
 class Printer {
 public:
     virtual ~Printer() {}
-    virtual void Init(float min_x, float min_y, float max_x, float max_y) = 0;
-    virtual void PrintPart(const Position &pos, const Part &part) = 0;
+    virtual void Init(const Dimension& dimension) = 0;
+    virtual void PrintPart(const Part &part) = 0;
     virtual void Finish() = 0;
 };
+
 #endif  // PRINTER_H

@@ -4,67 +4,48 @@
 
 #include "postscript-printer.h"
 
-// Smallest point from origin. TODO: make that some constant somewhere.
-static float offset_x = 10;
-static float offset_y = 10;
-
-void PostScriptPrinter::Init(float min_x, float min_y,
-                             float max_x, float max_y) {
-    corners_.SetCorners(min_x, min_y, max_x, max_y);
-    min_x -= 2; min_y -=2; max_x +=2; max_y += 2;
+void PostScriptPrinter::Init(const Dimension& board_dim) {
+    corners_.SetCorners(0, 0, board_dim.w, board_dim.h);
     const float mm_to_point = 1 / 25.4 * 72.0;
     printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
-           min_x * mm_to_point, min_y * mm_to_point,
-           max_x * mm_to_point, max_y * mm_to_point);
+           -2 * mm_to_point, -2 * mm_to_point,
+           board_dim.h * mm_to_point, board_dim.w * mm_to_point);
     printf("%s", R"(
-% <w> <h>
-/centered-rect {
-    currentpoint
-    currentpoint 0.2 0 360 arc closepath stroke
-    moveto
-    
-    2 copy
-    % We want it centered around current point
-    2 div neg exch 2 div neg exch rmoveto
-    
-    dup 0 exch rlineto
-
-    exch  % now <h> <w>
-    
-    0 rlineto
-    
-    0 exch neg rlineto
-    closepath
-    stroke
+% <dx> <dy> <x0> <y0>
+/rect {
+  moveto
+  1 index 0 rlineto
+  0 exch rlineto
+  neg 0 rlineto
+  closepath
+  stroke
 } def
 
-% Place Part
-% <w> <h> <angle>
+% <dy> <dx>  <x0> <y0>  <name>  <angle> <x> <y> pp
 /pp {
-  gsave
-  rotate
-  gsave 1 index 2 div 0.25 sub 0 rmoveto 0.5 0 rlineto stroke grestore
-  centered-rect
-  grestore
+    gsave
+    translate
+    rotate
+    0 0 moveto
+    0 0 0.1 0 360 arc
+    show
+    rect
+    grestore
 } def
-
-% MovePart Stack:
-% <x> <y>
-/mp { currentpoint 0.01 setlinewidth lineto currentpoint stroke moveto } def
-
 )");
     printf("72.0 25.4 div dup scale  %% Switch to mm\n");
-    printf("%.1f %.1f moveto\n", offset_x, offset_y);
+    printf("0.1 setlinewidth\n");
+    printf("/Helvetica findfont 1.5 scalefont setfont\n");
+    printf("%.1f %.1f moveto\n", 0.0, 0.0);
 }
 
-void PostScriptPrinter::PrintPart(const Position &pos, const Part &part) {
-    corners_.Update(pos, part);
-    printf("%.3f %.3f mp "
-           "%.3f %.3f %.3f pp\n"
-           "%.3f %.3f moveto ",
-           pos.x, pos.y,
-           part.dimension.w, part.dimension.h, part.angle,
-           pos.x, pos.y);
+void PostScriptPrinter::PrintPart(const Part &part) {
+    corners_.Update(part.pos, part);
+    printf("%.3f %.3f   %.3f %.3f   (%s) %.3f %.3f %.3f pp\n",
+           part.bounding_box.p1.x - part.bounding_box.p0.x,
+           part.bounding_box.p1.y - part.bounding_box.p0.y,
+           part.bounding_box.p0.x, part.bounding_box.p0.y,
+           part.component_name.c_str(), part.angle, part.pos.x, part.pos.y);
 }
 
 void PostScriptPrinter::Finish() {

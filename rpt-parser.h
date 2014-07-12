@@ -10,9 +10,14 @@
 // Event callbacks, to be implemented by whoever is interested in that stuff.
 // These are the raw parse events, the recipient needs to gather all the
 // relevant data.
+//
 // Units are in mm.
 class ParseEventReceiver {
 public:
+    // Maximum dimensions of the board. Board is normalized to be in range
+    // (0,0) (max_x, max_y)
+    virtual void StartBoard(float max_x, float max_y) = 0;
+
     virtual void StartComponent(const std::string &name) = 0;  // 'module' in french.
     virtual void EndComponent() = 0;
 

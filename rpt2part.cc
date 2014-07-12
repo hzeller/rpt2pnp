@@ -14,12 +14,19 @@ namespace {
 // Collect the parts from parse events.
 class PartCollector : public ParseEventReceiver {
 public:
-    PartCollector(std::vector<const Part*> *parts)
-        : origin_x_(0), origin_y_(0), current_part_(NULL),
-          collected_parts_(parts) {}
+    PartCollector(std::vector<const Part*> *parts,
+                  Dimension *board_dimension)
+        : current_part_(NULL),
+          collected_parts_(parts), board_dimension_(board_dimension) {}
 
 protected:
+    virtual void StartBoard(float max_x, float max_y) {
+        board_dimension_->w = max_y;
+        board_dimension_->h = max_x;
+    }
+
     virtual void StartComponent(const std::string &c) {
+        in_pad_ = false;
         current_part_ = new Part();
         current_part_->component_name = c;
         drillSum = 0;
@@ -40,23 +47,36 @@ protected:
 
     // Not caring about pads right now.
     virtual void StartPad(const std::string &c) {
-        // collect pads for dispensing.
+        in_pad_ = true;
     }
-    virtual void EndPad() { }
+    virtual void EndPad() {
+        in_pad_ = false;
+    }
 
     virtual void Position(float x, float y) {
-        // The first position callback we get is for the cmponent.
-        if ((current_part_->pos.x == 0)
-            && (current_part_->pos.y == 0)) {
+        if (in_pad_) {
+            rotateXY(&x, &y);
+            pad_position_.Set(x, y);
+        } else {
             current_part_->pos.x = x;
             current_part_->pos.y = y;
         }
     }
     virtual void Size(float w, float h) {
-        if (current_part_->dimension.w == 0
-            && current_part_->dimension.h == 0) {
-            current_part_->dimension.w = w;
-            current_part_->dimension.h = h;
+        if (in_pad_) {
+            float x, y;
+            x = pad_position_.x - w/2;
+            if (x < current_part_->bounding_box.p0.x)
+                current_part_->bounding_box.p0.x = x;
+            x = pad_position_.x + w/2;
+            if (x > current_part_->bounding_box.p1.x)
+                current_part_->bounding_box.p1.x = x;
+            y = pad_position_.y - h/2;
+            if (y < current_part_->bounding_box.p0.y)
+                current_part_->bounding_box.p0.y = y;
+            y = pad_position_.y + h/2;
+            if (y > current_part_->bounding_box.p1.y)
+                current_part_->bounding_box.p1.y = y;
         }
     }
 
@@ -65,13 +85,13 @@ protected:
     }
 
     virtual void Orientation(float angle) {
-        if (angle_ == 0) { // only take the first "position" of the component record
-            // Angle is in degrees, make that radians.
-            // mmh, and it looks like it turned in negative direction ? Probably part
-            // of the mirroring.
-            angle_ = -M_PI * angle / 180.0;
-            current_part_->angle = angle; // change to _angle if you really want radians
-        }
+        if (in_pad_)
+            return;
+        // Angle is in degrees, make that radians.
+        // mmh, and it looks like it turned in negative direction ? Probably part
+        // of the mirroring.
+        angle_ = -M_PI * angle / 180.0;
+        current_part_->angle = angle; // change to angle_ if you really want radians
     }
 
 private:
@@ -83,21 +103,23 @@ private:
     }
 
     // Current coordinate system.
-    float origin_x_;
-    float origin_y_;
     float angle_;
     float drillSum; // add up all the pad drill sizes, should be 0 for smt
+    bool in_pad_;
 
+    ::Position pad_position_;
     std::string component_name_;
     Part *current_part_;
     std::vector<const Part*> *collected_parts_;
+    Dimension *board_dimension_;
 };
 }  // namespace
 
 // public interface
 bool ReadRptFile(const std::string& rpt_file,
-                 std::vector<const Part*> *result) {
-    PartCollector collector(result);
+                 std::vector<const Part*> *result,
+                 Dimension* board_dimension) {
+    PartCollector collector(result, board_dimension);
     std::ifstream in(rpt_file);
     return RptParse(&in, &collector);
 }
