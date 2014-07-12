@@ -11,16 +11,24 @@ struct Position {
     float x, y;
 };
 
+struct Dimension {
+    Dimension(float ww, float hh) : w(ww), h(hh) {}
+    Dimension() : w(0), h(0) {}
+    float w, h;
+};
+
 struct Part {
     Part() : pos(), angle(0) {}
     std::string component_name;
     std::string value;
     Position pos;
+    Dimension dimension;
     float angle;
+    // vector<Pad> // for paste dispensing. Not needed here.
 };
 
 float Distance(const Position& a, const Position& b);
 
-// Find acceptable route for pad visiting. Ideally solves TSP, but heuristics are good
-// as well.
+// Find acceptable route for pad visiting. Ideally solves TSP, but
+// heuristics are good as well.
 void OptimizeParts(std::vector<const Part*> *parts);

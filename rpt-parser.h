@@ -18,7 +18,7 @@ public:
     virtual void StartPad(const std::string &name) =  0;
     virtual void EndPad() =  0;
 
-    // Can be called within 'compponent' or 'pad'
+    // Can be called within 'component' or 'pad'
     virtual void Position(float x, float y) = 0;
     virtual void Size(float w, float h) = 0;
     virtual void Value(const std::string &name) = 0;

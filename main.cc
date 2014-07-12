@@ -62,7 +62,7 @@ class Printer {
 public:
     virtual ~Printer() {}
     virtual void Init(float min_x, float min_y, float max_x, float max_y) = 0;
-    virtual void Part(const Position &pos, const ::Part &part) = 0;
+    virtual void PrintPart(const Position &pos, const Part &part) = 0;
     virtual void Finish() = 0;
 };
 
@@ -81,7 +81,7 @@ public:
                );
     }
 
-    virtual void Part(const Position &pos, const ::Part &part) {
+    virtual void PrintPart(const Position &pos, const Part &part) {
         // move to new position, above board
         printf("G0 X%.3f Y%.3f E%.3f Z" Z_HOVER_DISPENSER " ; comp=%s val=%s\n",
                // "G1 Z" Z_HIGH_UP_DISPENSER "\n", // high above to have paste is well separated
@@ -92,6 +92,7 @@ public:
     virtual void Finish() {
         printf(";done\n");
     }
+
 private:
     const float init_ms_;
     const float area_ms_;
@@ -112,7 +113,7 @@ public:
                );
     }
 
-    virtual void Part(const Position &pos, const ::Part &part) {
+    virtual void PrintPart(const Position &pos, const Part &part) {
         corners_.Update(pos, part);
     }
 
@@ -145,16 +146,55 @@ public:
         printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
                min_x * mm_to_point, min_y * mm_to_point,
                max_x * mm_to_point, max_y * mm_to_point);
-        printf("%% PastePart. Stack: <diameter>\n/pp { 0.2 setlinewidth 0 360 arc stroke } def\n\n"
-               "%% Move. Stack: <x> <y>\n/m { 0.01 setlinewidth lineto currentpoint stroke } def\n\n");
+        printf("%s", R"(
+% <w> <h>
+/centered-rect {
+    currentpoint
+    currentpoint 0.2 0 360 arc closepath stroke
+    moveto
+    
+    2 copy
+    % We want it centered around current point
+    2 div neg exch 2 div neg exch rmoveto
+    
+    dup 0 exch rlineto
+
+    exch  % now <h> <w>
+    
+    0 rlineto
+    
+    0 exch neg rlineto
+    closepath
+    stroke
+} def
+
+% Place Part
+% <w> <h> <angle>
+/pp {
+  gsave
+  rotate
+  gsave 1 index 2 div 0.25 sub 0 rmoveto 0.5 0 rlineto stroke grestore
+  centered-rect
+  grestore
+} def
+
+% MovePart Stack:
+% <x> <y>
+/mp { currentpoint 0.01 setlinewidth lineto currentpoint stroke moveto } def
+
+)");
         printf("72.0 25.4 div dup scale  %% Switch to mm\n");
         printf("%.1f %.1f moveto\n", offset_x, offset_y);
     }
 
-    virtual void Part(const Position &pos, const ::Part &part) {
+    virtual void PrintPart(const Position &pos, const Part &part) {
         corners_.Update(pos, part);
-        printf("%.3f %.3f m %.3f pp \n%.3f %.3f moveto ",
-               pos.x, pos.y, sqrtf(8 / M_PI), pos.x, pos.y);
+        printf("%.3f %.3f mp "
+               "%.3f %.3f %.3f pp\n"
+               "%.3f %.3f moveto ",
+               pos.x, pos.y,
+               part.dimension.w, part.dimension.h, part.angle,
+               pos.x, pos.y);
     }
 
     virtual void Finish() {
@@ -172,6 +212,7 @@ private:
     CornerPartCollector corners_;
 };
 
+// Collect the parts from parse events.
 class PartCollector : public ParseEventReceiver {
 public:
     PartCollector(std::vector<const Part*> *parts) : origin_x_(0), origin_y_(0), current_part_(NULL),
@@ -196,16 +237,26 @@ public:
         current_part_ = NULL;
     }
 
-    virtual void StartPad(const std::string &c) { }
+    // Not caring about pads right now.
+    virtual void StartPad(const std::string &c) {
+        // collect pads for dispensing.
+    }
     virtual void EndPad() { }
 
     virtual void Position(float x, float y) {
-        if ((current_part_->pos.x == 0) && (current_part_->pos.y == 0)) { // only take the first Position of the module
+        // The first position callback we get is for the cmponent.
+        if ((current_part_->pos.x == 0)
+            && (current_part_->pos.y == 0)) {
             current_part_->pos.x = x;
             current_part_->pos.y = y;
         }
     }
     virtual void Size(float w, float h) {
+        if (current_part_->dimension.w == 0
+            && current_part_->dimension.h == 0) {
+            current_part_->dimension.w = w;
+            current_part_->dimension.h = h;
+        }
     }
 
     virtual void Drill(float size) {
@@ -292,8 +343,8 @@ int main(int argc, char *argv[]) {
     std::ifstream in(rpt_file);
     RptParse(&in, &collector);
 
-    // The coordinates coming out of the file are mirrored, so we determine the maximum
-    // to mirror at these axes.
+    // The coordinates coming out of the file are mirrored, so we determine the
+    // maximum to mirror at these axes.
     // (mmh, looks like it is only mirrored on y axis ?)
     float min_x = parts[0]->pos.x, min_y = parts[0]->pos.y;
     float max_x = parts[0]->pos.x, max_y = parts[0]->pos.y;
@@ -320,9 +371,9 @@ int main(int argc, char *argv[]) {
         const Part *part = parts[i];
         // We move x-coordinates relative to the smallest X.
         // Y-coordinates are mirrored at the maximum Y (that is how the come out of the file)
-        printer->Part(Position(part->pos.x + offset_x - min_x,
-                              max_y - part->pos.y + offset_y),
-                     *part);
+        printer->PrintPart(Position(part->pos.x + offset_x - min_x,
+                                    max_y - part->pos.y + offset_y),
+                           *part);
     }
 
     printer->Finish();
