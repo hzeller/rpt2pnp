@@ -39,10 +39,8 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
         char buffer[1024];
         in.getline(buffer, sizeof(buffer), '\n');
 
-        if (token[0] == '#')
+        if (token.empty() || token[0] == '#')
             continue;
-
-        fprintf(stderr, "Got: %s %s\n", token.c_str(), buffer);
 
         if (token == "Board:") {
             if (current_tape) current_tape = NULL;
@@ -60,7 +58,8 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
         } else if (token == "origin:") {
             if (current_tape) {
                 if (3 != sscanf(buffer, "%f %f %f", &x, &y, &z)) {
-                    fprintf(stderr, "Parse problem tape origin.\n");
+                    fprintf(stderr, "Parse problem tape origin: '%s'\n",
+                            buffer);
                     result.reset(NULL);
                 }
                 current_tape->SetFirstComponentPosition(x, y, z);
@@ -68,7 +67,8 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
                 if (2 != sscanf(buffer, "%f %f",
                                 &result->board_origin.x, 
                                 &result->board_origin.y)) {
-                    fprintf(stderr, "Parse problem board origin.\n");
+                    fprintf(stderr, "Parse problem board origin: '%s'\n",
+                            buffer);
                     result.reset(NULL);
                 }
             }
@@ -79,10 +79,21 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
                 break;
             }
             if (2 != sscanf(buffer, "%f %f", &x, &y)) {
-                fprintf(stderr, "Parse problem spacing. '%s'\n", buffer);  // line no ?
+                fprintf(stderr, "Parse problem spacing: '%s'\n", buffer);  // line no ?
                 result.reset(NULL);
             }
             current_tape->SetComponentSpacing(x, y);
+        } else if (token == "spacing:") {
+            if (!current_tape) {
+                std::cerr << "spacing without tape";
+                result.reset(NULL);
+                break;
+            }
+            if (1 != sscanf(buffer, "%f", &x)) {
+                fprintf(stderr, "Parse problem angle: '%s'\n", buffer);  // line no ?
+                result.reset(NULL);
+            }
+            current_tape->SetAngle(x);
         } else if (token == "count:") {
             if (!current_tape) {
                 std::cerr << "Count without tape.";
@@ -91,13 +102,12 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
             }
             int count;
             if (1 != sscanf(buffer, "%d", &count)) {
-                fprintf(stderr, "Parse problem count '%s'.\n", buffer);  // line no ?
+                fprintf(stderr, "Parse problem count: '%s'.\n", buffer);  // line no ?
                 result.reset(NULL);
             }
             current_tape->SetNumberComponents(count);
         }
     }
-    printf("done config parse");
     return result.release();
 }
 

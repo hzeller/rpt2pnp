@@ -16,6 +16,8 @@ public:
     void SetFirstComponentPosition(float x, float y, float z);
     void SetComponentSpacing(float dx, float dy);
     void SetNumberComponents(int n);
+    void SetAngle(float a) { angle_ = a; }
+    float angle() const { return angle_; }
 
     // Get next component position. Returns 'true' if there is any, 'false'
     // if we exhausted our components.
@@ -27,6 +29,7 @@ public:
 private:
     float x_, y_, z_;
     float dx_, dy_;
+    float angle_;
     int count_;
 };
 

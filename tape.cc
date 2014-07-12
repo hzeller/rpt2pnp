@@ -9,7 +9,7 @@
 Tape::Tape()
     : x_(0), y_(0), z_(0),
       dx_(0), dy_(0),
-      count_(0) {
+      count_(1000) {
 }
 
 void Tape::SetFirstComponentPosition(float x, float y, float z) {
