@@ -14,6 +14,9 @@
 
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
+#include "printer.h"
+#include "postscript-printer.h"
+#include "corner-part-collector.h"
 
 static const float minimum_milliseconds = 50;
 static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
@@ -25,46 +28,6 @@ static float offset_y = 10;
 #define Z_DISPENSING "1.7"        // Position to dispense stuff. Just above board.
 #define Z_HOVER_DISPENSER "2.5"   // Hovering above position.
 #define Z_HIGH_UP_DISPENSER "5"   // high up to separate paste.
-
-// Determiness coordinates that are closest to the corner.
-class CornerPartCollector {
-public:
-    void SetCorners(float min_x, float min_y, float max_x, float max_y) {
-        corners_[0].x = min_x;  corners_[0].y = min_y;
-        corners_[1].x = max_x;  corners_[1].y = min_y;
-        corners_[2].x = min_x;  corners_[2].y = max_y;
-        corners_[3].x = max_x;  corners_[3].y = max_y;
-        for (int i = 0; i < 4; ++i) corner_distance_[i] = -1;
-    }
-
-    void Update(const Position &pos, const Part &part) {
-        for (int i = 0; i < 4; ++i) {
-            const float distance = Distance(corners_[i], pos);
-            if (corner_distance_[i] < 0 || distance < corner_distance_[i]) {
-                corner_distance_[i] = distance;
-                closest_match_[i] = pos;
-                closest_part_[i] = part;
-            }
-        }
-    }
-
-    const ::Part &get_part(int i) const { return closest_part_[i]; }
-    const Position &get_closest(int i) const { return closest_match_[i]; }
-
-private:
-    Position corners_[4];
-    float corner_distance_[4];
-    Position closest_match_[4];
-    Part closest_part_[4];
-};
-
-class Printer {
-public:
-    virtual ~Printer() {}
-    virtual void Init(float min_x, float min_y, float max_x, float max_y) = 0;
-    virtual void PrintPart(const Position &pos, const Part &part) = 0;
-    virtual void Finish() = 0;
-};
 
 class GCodePrinter : public Printer {
 public:
@@ -137,87 +100,23 @@ private:
     const float area_ms_;
 };
 
-class PostScriptPrinter : public Printer {
-public:
-    virtual void Init(float min_x, float min_y, float max_x, float max_y) {
-        corners_.SetCorners(min_x, min_y, max_x, max_y);
-        min_x -= 2; min_y -=2; max_x +=2; max_y += 2;
-        const float mm_to_point = 1 / 25.4 * 72.0;
-        printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
-               min_x * mm_to_point, min_y * mm_to_point,
-               max_x * mm_to_point, max_y * mm_to_point);
-        printf("%s", R"(
-% <w> <h>
-/centered-rect {
-    currentpoint
-    currentpoint 0.2 0 360 arc closepath stroke
-    moveto
-    
-    2 copy
-    % We want it centered around current point
-    2 div neg exch 2 div neg exch rmoveto
-    
-    dup 0 exch rlineto
-
-    exch  % now <h> <w>
-    
-    0 rlineto
-    
-    0 exch neg rlineto
-    closepath
-    stroke
-} def
-
-% Place Part
-% <w> <h> <angle>
-/pp {
-  gsave
-  rotate
-  gsave 1 index 2 div 0.25 sub 0 rmoveto 0.5 0 rlineto stroke grestore
-  centered-rect
-  grestore
-} def
-
-% MovePart Stack:
-% <x> <y>
-/mp { currentpoint 0.01 setlinewidth lineto currentpoint stroke moveto } def
-
-)");
-        printf("72.0 25.4 div dup scale  %% Switch to mm\n");
-        printf("%.1f %.1f moveto\n", offset_x, offset_y);
-    }
-
-    virtual void PrintPart(const Position &pos, const Part &part) {
-        corners_.Update(pos, part);
-        printf("%.3f %.3f mp "
-               "%.3f %.3f %.3f pp\n"
-               "%.3f %.3f moveto ",
-               pos.x, pos.y,
-               part.dimension.w, part.dimension.h, part.angle,
-               pos.x, pos.y);
-    }
-
-    virtual void Finish() {
-        printf("0 0 1 setrgbcolor\n");
-        for (int i = 0; i < 4; ++i) {
-            //const ::Part &part = corners_.get_part(i);
-            const Position &pos = corners_.get_closest(i);
-            printf("%.1f 2 add %.1f moveto %.1f %.1f 2 0 360 arc stroke\n",
-                   pos.x, pos.y, pos.x, pos.y);
-        }
-        printf("showpage\n");
-    }
-
-private:
-    CornerPartCollector corners_;
-};
-
 // Collect the parts from parse events.
 class PartCollector : public ParseEventReceiver {
 public:
-    PartCollector(std::vector<const Part*> *parts) : origin_x_(0), origin_y_(0), current_part_(NULL),
-                                                     collected_parts_(parts) {}
+    static void ReadRptFile(const std::string& rpt_file,
+                            std::vector<const Part*> *result) {
+        PartCollector collector(result);
+        std::ifstream in(rpt_file);
+        RptParse(&in, &collector);
+    }
 
+private:
+    // Only to be used by public static functions.
+    PartCollector(std::vector<const Part*> *parts)
+        : origin_x_(0), origin_y_(0), current_part_(NULL),
+          collected_parts_(parts) {}
+
+protected:
     virtual void StartComponent(const std::string &c) {
         current_part_ = new Part();
         current_part_->component_name = c;
@@ -338,10 +237,8 @@ int main(int argc, char *argv[]) {
 
     const char *rpt_file = argv[optind];
 
-    std::vector<const Part*> parts;
-    PartCollector collector(&parts);
-    std::ifstream in(rpt_file);
-    RptParse(&in, &collector);
+    std::vector<const Part*> parts;    
+    PartCollector::ReadRptFile(rpt_file, &parts);
 
     // The coordinates coming out of the file are mirrored, so we determine the
     // maximum to mirror at these axes.

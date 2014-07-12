@@ -2,6 +2,9 @@
  * (c) h.zeller@acm.org. Free Software. GNU Public License v3.0 and above
  */
 
+#ifndef RPT2PNP_H
+#define RPT2PNP_H
+
 #include <vector>
 #include <string>
 
@@ -32,3 +35,4 @@ float Distance(const Position& a, const Position& b);
 // Find acceptable route for pad visiting. Ideally solves TSP, but
 // heuristics are good as well.
 void OptimizeParts(std::vector<const Part*> *parts);
+#endif // RPT2PNP_H
