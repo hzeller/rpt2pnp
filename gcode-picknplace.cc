@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "tape.h"
 
@@ -14,6 +15,33 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#define Z_HOVERING 10
+
+// All templates should be in a separate file somewhere so that we don't
+// have to compile.
+
+const char *const gcode_preamble = R"(
+  ; Preamble. Fill be whatever is necessary to init.
+  ; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
+  ; 0..360 correspond to degrees.
+)";
+
+// param: x, y, zdown, a, zup
+const char *const pick_gcode = R"(
+  G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to pick.
+  ; TODO(jerkey) code to switch on suckage
+  G1 Z%.3f  ; Move up a bit for traveling
+)";
+
+// param: x, y, zup, a, zdown, zup
+const char *const place_gcode = R"(
+  G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to place.
+  G1 Z%.3f  ; move down.
+  ; TODO(jerkey) code to switch off suckage
+  ; TODO(jerkey) code to switch on 'spitting out': short burst
+  G1 Z%.3f  ; Move up
+)";
 
 // component type -> Tape
 struct GCodePickNPlace::Config {
@@ -82,6 +110,11 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
                 fprintf(stderr, "Parse problem spacing: '%s'\n", buffer);  // line no ?
                 result.reset(NULL);
             }
+            if (x == 0 && y == 0) {
+                fprintf(stderr, "Spacing: eat least one needs to be set '%s'\n",
+                        buffer);  // line no ?
+                result.reset(NULL);
+            }
             current_tape->SetComponentSpacing(x, y);
         } else if (token == "spacing:") {
             if (!current_tape) {
@@ -114,6 +147,7 @@ GCodePickNPlace::ParseConfig(const std::string& filename) {
 GCodePickNPlace::GCodePickNPlace(const std::string& filename)
     : config_(ParseConfig(filename)) {
     assert(config_);
+#if 0
     fprintf(stderr, "Board-origin: (%.3f, %.3f)\n",
             config_->board_origin.x, config_->board_origin.y);
     for (const auto &t : config_->tape_for_component) {
@@ -121,11 +155,41 @@ GCodePickNPlace::GCodePickNPlace(const std::string& filename)
         t.second->DebugPrint();
         fprintf(stderr, "\n");
     }
+#endif
 }
 
 void GCodePickNPlace::Init(const Dimension& dim) {
+    printf("%s", gcode_preamble);
 }
+
 void GCodePickNPlace::PrintPart(const Part &part) {
+    const std::string key = part.footprint + "@" + part.value;
+    auto found = config_->tape_for_component.find(key);
+    if (found == config_->tape_for_component.end()) {
+        fprintf(stderr, "No tape for '%s'\n", key.c_str());
+        return;
+    }
+    Tape *tape = found->second;
+    float px, py, pz;
+    if (!tape->GetNextPos(&px, &py, &pz)) {
+        fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
+        return;
+    }
+    // param: x, y, zdown, a, zup
+    printf(pick_gcode,
+           px, py, pz,                  // component pos.
+           fmod(tape->angle(), 360.0),  // pickup angle
+           pz + Z_HOVERING);
+
+    // TODO: right now, we are assuming the z is the same height as
+    // param: x, y, zup, a, zdown, zup
+    printf(place_gcode,
+          part.pos.x, part.pos.y, pz + Z_HOVERING,
+          fmod(part.angle - tape->angle() + 360, 360.0),
+          pz,
+          pz + Z_HOVERING);
 }
+
 void GCodePickNPlace::Finish() {
+    printf(";done\n");
 }
