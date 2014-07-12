@@ -47,4 +47,20 @@ private:
     const float area_ms_;
 };
 
+class GCodePickNPlace : public Printer {
+public:
+    GCodePickNPlace(const std::string& filename);
+
+    virtual void Init(const Dimension& dim);
+    virtual void PrintPart(const Part& part);
+    virtual void Finish();
+
+private:
+    struct Config;
+
+    static Config *ParseConfig(const std::string& filename);
+
+    Config* config_;
+};
+
 #endif  // PRINTER_H

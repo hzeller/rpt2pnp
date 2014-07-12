@@ -15,6 +15,8 @@ GCodeDispensePrinter::GCodeDispensePrinter(float init_ms, float area_ms)
     : init_ms_(init_ms), area_ms_(area_ms) {}
 
 void GCodeDispensePrinter::Init(const Dimension& dim) {
+    //OptimizeParts(&parts);
+
     printf("; rpt2pnp -d %.2f -D %.2f file.rpt\n", init_ms_, area_ms_);
     // G-code preamble. Set feed rate, homing etc.
     printf(

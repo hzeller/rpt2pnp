@@ -27,6 +27,7 @@ static int usage(const char *prog) {
             "\t-p      : Output as PostScript.\n"
             "\t-c      : Output corner DryRun G-Code.\n"
             "\t-l      : List different components + count found on board\n"
+            "\t-a <config> : 'assemble': Pick'n place\n"
             "\t-d <ms> : Dispensing init time ms (default %.1f)\n"
             "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
             prog, minimum_milliseconds, area_to_milliseconds);
@@ -34,17 +35,20 @@ static int usage(const char *prog) {
 }
 
 void CountComponents(const Board::PartList& list) {
+    int total_count = 0;
     int longest_string = 0;
     std::map<std::string, int> counts;
     for (auto* part : list) {
         const std::string key = part->footprint + "@" + part->value;
         longest_string = std::max(longest_string, (int) key.length());
         counts[key]++;
+        ++total_count;
     }
     for (auto& part_count : counts) {
         printf("%-*s %3d\n", longest_string, part_count.first.c_str(),
                part_count.second);
     }
+    fprintf(stderr, "%d components total\n", total_count);
 }
 
 int main(int argc, char *argv[]) {
@@ -53,12 +57,14 @@ int main(int argc, char *argv[]) {
         OUT_CORNER_GCODE,
         OUT_POSTSCRIPT,
         OUT_COMPONENT_LIST,
+        OUT_PICKNPLACE,
     } output_type = OUT_DISPENSING;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
+    std::string filename;
     int opt;
-    while ((opt = getopt(argc, argv, "pcld:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "pcla:d:D:")) != -1) {
         switch (opt) {
         case 'p':
             output_type = OUT_POSTSCRIPT;
@@ -68,6 +74,10 @@ int main(int argc, char *argv[]) {
             break;
         case 'l':
             output_type = OUT_COMPONENT_LIST;
+            break;
+        case 'a':
+            output_type = OUT_PICKNPLACE;
+            filename = optarg;
             break;
         case 'd':
             start_ms = atof(optarg);
@@ -99,14 +109,16 @@ int main(int argc, char *argv[]) {
     case OUT_DISPENSING:   printer = new GCodeDispensePrinter(start_ms, area_ms); break;
     case OUT_CORNER_GCODE: printer = new GCodeCornerIndicator(start_ms, area_ms); break;
     case OUT_POSTSCRIPT:   printer = new PostScriptPrinter(); break;
+    case OUT_PICKNPLACE:
+        // TODO: allow jogging to the various positions.
+        printer = new GCodePickNPlace(filename);
+        break;
     default:
         break;
     }
 
     if (printer == NULL)
         return 1;
-
-    //OptimizeParts(&parts);
 
     printer->Init(board.dimension());
 

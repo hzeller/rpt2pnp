@@ -38,7 +38,7 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
 )");
     printf("72.0 25.4 div dup scale  %% Switch to mm\n");
     printf("0.1 setlinewidth\n");
-    printf("/Helvetica findfont 1.5 scalefont setfont\n");
+    printf("/Helvetica findfont 1 scalefont setfont\n");
     printf("%.1f %.1f moveto\n", 0.0, 0.0);
 }
 
@@ -54,6 +54,8 @@ void PostScriptPrinter::PrintPart(const Part &part) {
 }
 
 void PostScriptPrinter::Finish() {
+#if 0
+    // Doesn't work that well currently.
     printf("0 0 1 setrgbcolor\n");
     for (int i = 0; i < 4; ++i) {
         //const ::Part &part = corners_.get_part(i);
@@ -61,5 +63,6 @@ void PostScriptPrinter::Finish() {
         printf("%.1f 2 add %.1f moveto %.1f %.1f 2 0 360 arc stroke\n",
                pos.x, pos.y, pos.x, pos.y);
     }
+#endif
     printf("showpage\n");
 }

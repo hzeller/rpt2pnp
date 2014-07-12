@@ -33,9 +33,6 @@ public:
     // Read from kicad rpt file.
      bool ReadPartsFromRpt(const std::string& filename);
 
-    // The actual origin on the dispense/pnp platform (unit: mm)
-    void SetOrigin(const Position& pos) { origin_ = pos; }
-
     // We need more coordinates here so that we can figure out a slightly
     // twisted board on the platform, ideally calibrated by moving the nozzle
     // to certain pads.
@@ -47,7 +44,6 @@ public:
     int PartCount() const { return parts_.size(); }
 
 private:
-    Position origin_;
     Dimension board_dim_;
     PartList parts_;
 };

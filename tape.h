@@ -22,6 +22,8 @@ public:
     // Advances on the tape, so each call yields a different position.
     bool GetNextPos(float *x, float *y, float *z);
 
+    void DebugPrint() const;  // print to stderr.
+
 private:
     float x_, y_, z_;
     float dx_, dy_;

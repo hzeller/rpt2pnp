@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "tape.h"
+#include <stdio.h>
 
 Tape::Tape()
     : x_(0), y_(0), z_(0),
@@ -40,4 +41,9 @@ bool Tape::GetNextPos(float *x, float *y, float *z) {
     *y = y_;
     *z = z_;
     return true;
+}
+
+void Tape::DebugPrint() const {
+    fprintf(stderr, "%p: origin: (%.2f, %.2f, %.2f) delta: (%.2f,%.2f) "
+            "count: %d", this, x_, y_, z_, dx_, dy_, count_);
 }
