@@ -8,6 +8,8 @@
 #include <vector>
 #include <string>
 
+struct Part;
+
 struct Position {
     Position(float xx, float yy) : x(xx), y(yy) {}
     Position() : x(0), y(0) {}
@@ -27,25 +29,10 @@ struct Box {
     Position p1;
 };
 
-struct Part {
-    Part() : pos(), angle(0) {}
-    std::string component_name;
-    std::string value;
-    Position pos;
-    Box bounding_box;   // relative to pos
-    float angle;
-    // vector<Pad> // for paste dispensing. Not needed here.
-};
-
 float Distance(const Position& a, const Position& b);
 
 // Find acceptable route for pad visiting. Ideally solves TSP, but
 // heuristics are good as well. (optimizer.cc)
 void OptimizeParts(std::vector<const Part*> *parts);
-
-// Read an rpt file. (rpt2part.cc)
-bool ReadRptFile(const std::string& rpt_file,
-                 std::vector<const Part*> *result,
-                 Dimension *board_dimension);
 
 #endif // RPT2PNP_H

@@ -1,17 +1,17 @@
 /* -*- c++ -*-
  * (c) h.zeller@acm.org. Free Software. GNU Public License v3.0 and above
- *
- * Uses the RPT parser to create a list of parts.
  */
+
+#include "board.h"
 
 #include <math.h>
 #include <fstream>
 
 #include "rpt-parser.h"
-#include "rpt2pnp.h"
 
 namespace {
-// Collect the parts from parse events.
+    // Helper class to read file from parse events.
+    // Collect the parts from parse events.
 class PartCollector : public ParseEventReceiver {
 public:
     PartCollector(std::vector<const Part*> *parts,
@@ -115,11 +115,16 @@ private:
 };
 }  // namespace
 
-// public interface
-bool ReadRptFile(const std::string& rpt_file,
-                 std::vector<const Part*> *result,
-                 Dimension* board_dimension) {
-    PartCollector collector(result, board_dimension);
-    std::ifstream in(rpt_file);
+Board::Board() {}
+
+Board::~Board() {
+    for (const Part* part : parts_) {
+        delete part;
+    }
+}
+
+bool Board::ReadPartsFromRpt(const std::string& filename) {
+    PartCollector collector(&parts_, &board_dim_);
+    std::ifstream in(filename);
     return RptParse(&in, &collector);
 }

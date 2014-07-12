@@ -1,11 +1,16 @@
 /* -*- c++ -*-
  * (c) h.zeller@acm.org. Free Software. GNU Public License v3.0 and above
+ * Optimization for dispensing stuff.
+ * Not really used right now; used to be for pads, doesn't make much sense for
+ * parts.
  */
 
 #include "rpt2pnp.h"
 
 #include <math.h>
 #include <unistd.h>
+
+#include "board.h"  // definition of Part
 
 static float euklid(float a, float b) { return sqrtf(a*a + b*b); }
 float Distance(const Position& a, const Position& b) {

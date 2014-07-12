@@ -11,11 +11,12 @@
 #include <string>
 #include <vector>
 
+#include "board.h"
+#include "corner-part-collector.h"
+#include "postscript-printer.h"
+#include "printer.h"
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
-#include "printer.h"
-#include "postscript-printer.h"
-#include "corner-part-collector.h"
 
 static const float minimum_milliseconds = 50;
 static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
@@ -146,9 +147,8 @@ int main(int argc, char *argv[]) {
 
     const char *rpt_file = argv[optind];
 
-    std::vector<const Part*> parts;
-    Dimension board_dimension;
-    ReadRptFile(rpt_file, &parts, &board_dimension);
+    Board board;
+    board.ReadPartsFromRpt(rpt_file);
 
     Printer *printer;
     switch (output_type) {
@@ -157,21 +157,18 @@ int main(int argc, char *argv[]) {
     case OUT_POSTSCRIPT:   printer = new PostScriptPrinter(); break;
     }
 
-    OptimizeParts(&parts);
+    //OptimizeParts(&parts);
 
-    printer->Init(board_dimension);
+    printer->Init(board.dimension());
 
-    for (const Part* part : parts) {
+    for (const Part* part : board.parts()) {
         printer->PrintPart(*part);
     }
 
     printer->Finish();
 
-    fprintf(stderr, "Dispensed %zd parts. Total dispense time: %.1fs\n",
-            parts.size(), 0.0f);
-    for (const Part* part : parts) {
-        delete part;
-    }
+    fprintf(stderr, "Dispensed %d parts. Total dispense time: %.1fs\n",
+            board.PartCount(), 0.0f);
     delete printer;
     return 0;
 }

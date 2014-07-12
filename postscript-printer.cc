@@ -21,15 +21,16 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
   stroke
 } def
 
-% <dy> <dx>  <x0> <y0>  <name>  <angle> <x> <y> pp
+% <dy> <dx>  <x0> <y0>  <value> <name>  <angle> <x> <y> pp
 /pp {
     gsave
     translate
     rotate
     0 0 moveto
     0 0 0.1 0 360 arc
-    0 0.5 0 setrgbcolor
-    show
+    0 0 1 setrgbcolor show % name
+    0 0 0 setrgbcolor ( / ) show
+    1 0 0 setrgbcolor show % value
     0 0 0 setrgbcolor
     rect
     grestore
@@ -43,11 +44,13 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
 
 void PostScriptPrinter::PrintPart(const Part &part) {
     corners_.Update(part.pos, part);
-    printf("%.3f %.3f   %.3f %.3f   (%s) %.3f %.3f %.3f pp\n",
+    printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
            part.bounding_box.p1.x - part.bounding_box.p0.x,
            part.bounding_box.p1.y - part.bounding_box.p0.y,
            part.bounding_box.p0.x, part.bounding_box.p0.y,
-           part.component_name.c_str(), part.angle, part.pos.x, part.pos.y);
+           part.value.c_str(),
+           part.component_name.c_str(),
+           part.angle, part.pos.x, part.pos.y);
 }
 
 void PostScriptPrinter::Finish() {

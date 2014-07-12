@@ -85,6 +85,7 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
         else if (token == "value") {
             std::string value;
             (*input) >> value;
+            value = value.substr(1, value.length() - 2);
             event->Value(value);
         }
     }

@@ -6,6 +6,7 @@
 #define PRINTER_H
 
 #include "rpt2pnp.h"
+#include "board.h"
 
 class Printer {
 public:
