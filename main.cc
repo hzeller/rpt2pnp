@@ -150,7 +150,8 @@ int main(int argc, char *argv[]) {
 
     // The coordinates coming out of the file are mirrored, so we determine the
     // maximum to mirror at these axes.
-    // (mmh, looks like it is only mirrored on y axis ?)
+    // (mmh, looks like it is only mirrored on y axis ?; Maybe this is a mess-up
+    // in the RPT file and we should mirror it there right away)
     float min_x = parts[0]->pos.x, min_y = parts[0]->pos.y;
     float max_x = parts[0]->pos.x, max_y = parts[0]->pos.y;
     for (size_t i = 0; i < parts.size(); ++i) {
