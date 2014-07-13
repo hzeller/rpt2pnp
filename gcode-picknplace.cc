@@ -27,20 +27,22 @@ const char *const gcode_preamble = R"(
   ; 0..360 correspond to degrees.
 )";
 
-// param: x, y, zdown, a, zup
+// param: name, x, y, zdown, a, zup
 const char *const pick_gcode = R"(
-  G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to pick.
-  ; TODO(jerkey) code to switch on suckage
-  G1 Z%.3f  ; Move up a bit for traveling
+; Pick %s
+G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to pick.
+; TODO(jerkey) code to switch on suckage
+G1 Z%.3f  ; Move up a bit for traveling
 )";
 
-// param: x, y, zup, a, zdown, zup
+// param: name, x, y, zup, a, zdown, zup
 const char *const place_gcode = R"(
-  G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to place.
-  G1 Z%.3f  ; move down.
-  ; TODO(jerkey) code to switch off suckage
-  ; TODO(jerkey) code to switch on 'spitting out': short burst
-  G1 Z%.3f  ; Move up
+; Place %s
+G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to place.
+G1 Z%.3f  ; move down.
+; TODO(jerkey) code to switch off suckage
+; TODO(jerkey) code to switch on 'spitting out': short pressure burst
+G1 Z%.3f  ; Move up
 )";
 
 // component type -> Tape
@@ -175,21 +177,25 @@ void GCodePickNPlace::PrintPart(const Part &part) {
         fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
         return;
     }
-    // param: x, y, zdown, a, zup
+
+    const std::string print_name = part.component_name + " (" + key + ")";
+    // param: name, x, y, zdown, a, zup
     printf(pick_gcode,
+           print_name.c_str(),
            px, py, pz,                  // component pos.
            fmod(tape->angle(), 360.0),  // pickup angle
            pz + Z_HOVERING);
 
     // TODO: right now, we are assuming the z is the same height as
-    // param: x, y, zup, a, zdown, zup
+    // param: name, x, y, zup, a, zdown, zup
     printf(place_gcode,
-          part.pos.x, part.pos.y, pz + Z_HOVERING,
-          fmod(part.angle - tape->angle() + 360, 360.0),
-          pz,
-          pz + Z_HOVERING);
+           print_name.c_str(),
+           part.pos.x, part.pos.y, pz + Z_HOVERING,
+           fmod(part.angle - tape->angle() + 360, 360.0),
+           pz,
+           pz + Z_HOVERING);
 }
 
 void GCodePickNPlace::Finish() {
-    printf(";done\n");
+    printf("\n; done.\n");
 }

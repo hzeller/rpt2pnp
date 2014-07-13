@@ -24,10 +24,10 @@ static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
 static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
             "Options:\n"
-            "\t-c      : Output corner DryRun G-Code.\n"
-            "\t-t      : Create config template\n"
-            "\t-p <config> : 'assemble': Pick'n place\n"
+            "\t-t      : Create config template from rpt. Needs editing.\n"
+            "\t-p <config> : 'assemble': Pick'n place. Using config + rpt.\n"
             "\t-P      : Output as PostScript.\n"
+            "\t-c      : Output corner DryRun G-Code.\n"
             "\t-d <ms> : Dispensing init time ms (default %.1f)\n"
             "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
             prog, minimum_milliseconds, area_to_milliseconds);
@@ -37,10 +37,12 @@ static int usage(const char *prog) {
 void CreateConfigTemplate(const Board::PartList& list) {
     printf("Board:\norigin: 100 100 # x/y origin of the board\n\n");
 
-    printf("# You can place multiple equivalent components behind each Tape:\n");
+    printf("# Unlike this template, you can actually place multiple\n");
+    printf("# space-delimited '<footprint>@<value>' behind each 'Tape:'\n");
     printf("# Each Tape section requires\n");
-    printf("#  'origin:', which is the (x/y/z) position of\n");
-    printf("# the first component. And 'spacing:', (dx,dy) to the next one\n");
+    printf("#   'origin:', which is the (x/y/z) position of\n");
+    printf("# the first component (z: pick-up-height). And\n");
+    printf("#   'spacing:', (dx,dy) to the next one\n#\n");
     printf("# Also there are the following optional parameters\n");
     printf("#angle: 0     # Optional: Angle on tape\n");
     printf("#count: 1000  # Optional: available count on tape\n");
