@@ -32,14 +32,17 @@ bool Tape::GetNextPos(float *x, float *y, float *z) {
     assert(x != NULL && y != NULL && z != NULL);
     if (count_ <= 0)
         return false;
-    // Advance
-    x_ = x_ + dx_;
-    y_ = y_ + dy_;
-    // z stays the same.
 
     *x = x_;
     *y = y_;
     *z = z_;
+
+    // Advance
+    x_ = x_ + dx_;
+    y_ = y_ + dy_;
+    // z stays the same.
+    --count_;
+
     return true;
 }
 
