@@ -26,7 +26,7 @@
 // have to compile.
 
 // Multiplication to get 360 degrees mapped to one turn.
-#define ANGLE_FACTOR 1.0
+#define ANGLE_FACTOR (50.34965 / 360)
 
 const char *const gcode_preamble = R"(
 ; Preamble. Fill be whatever is necessary to init.
