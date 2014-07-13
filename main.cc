@@ -57,7 +57,7 @@ void CreateConfigTemplate(const Board::PartList& list) {
     }
     for (const std::string& c : components) {
         printf("\nTape: %s\n", c.c_str());
-        printf("origin:  0 0 2 # fill me\n");
+        printf("origin:  10 20 2 # fill me\n");
         printf("spacing: 4 0   # fill me\n");
     }
     fprintf(stderr, "%d components total\n", total_count);

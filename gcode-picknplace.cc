@@ -25,16 +25,22 @@
 // All templates should be in a separate file somewhere so that we don't
 // have to compile.
 
+// Multiplication to get 360 degrees mapped to one turn.
+#define ANGLE_FACTOR 1.0
+
 const char *const gcode_preamble = R"(
 ; Preamble. Fill be whatever is necessary to init.
 ; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
 ; 0..360 correspond to absolute degrees.
+; (correction: for now, we mess with an E-axis instead of A)
+G28 X0 Y0
+T1
 )";
 
 // param: name, x, y, zdown, a, zup
 const char *const pick_gcode = R"(
 ; Pick %s
-G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to pick.
+G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
 M42 P6 S255  ; turn on suckage
 G1 Z%.3f  ; Move up a bit for traveling
 )";
@@ -42,7 +48,7 @@ G1 Z%.3f  ; Move up a bit for traveling
 // param: name, x, y, zup, a, zdown, zup
 const char *const place_gcode = R"(
 ; Place %s
-G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to place.
+G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to place.
 G1 Z%.3f    ; move down.
 M42 P6 S0    ; turn off suckage
 M42 P8 S255  ; blow
@@ -189,7 +195,7 @@ void GCodePickNPlace::PrintPart(const Part &part) {
     printf(pick_gcode,
            print_name.c_str(),
            px, py, pz,                  // component pos.
-           fmod(tape->angle(), 360.0),  // pickup angle
+           ANGLE_FACTOR * fmod(tape->angle(), 360.0),  // pickup angle
            pz + Z_HOVERING);
 
     // TODO: right now, we are assuming the z is the same height as
@@ -197,7 +203,7 @@ void GCodePickNPlace::PrintPart(const Part &part) {
     printf(place_gcode,
            print_name.c_str(),
            part.pos.x, part.pos.y, pz + Z_HOVERING,
-           fmod(part.angle - tape->angle() + 360, 360.0),
+           ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
            pz + BOARD_THICKNESS,
            pz + Z_HOVERING);
 }
