@@ -16,22 +16,26 @@
 #include <fstream>
 #include <sstream>
 
+// Hovering while transporting a component.
 #define Z_HOVERING 10
+
+// Placement needs to be a bit higher.
+#define BOARD_THICKNESS 1.6
 
 // All templates should be in a separate file somewhere so that we don't
 // have to compile.
 
 const char *const gcode_preamble = R"(
-  ; Preamble. Fill be whatever is necessary to init.
-  ; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
-  ; 0..360 correspond to degrees.
+; Preamble. Fill be whatever is necessary to init.
+; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
+; 0..360 correspond to absolute degrees.
 )";
 
 // param: name, x, y, zdown, a, zup
 const char *const pick_gcode = R"(
 ; Pick %s
 G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to pick.
-; TODO(jerkey) code to switch on suckage
+M42 P6 S255  ; turn on suckage
 G1 Z%.3f  ; Move up a bit for traveling
 )";
 
@@ -39,10 +43,12 @@ G1 Z%.3f  ; Move up a bit for traveling
 const char *const place_gcode = R"(
 ; Place %s
 G1 X%.3f Y%.3f Z%.3f A%.3f ; Move over component to place.
-G1 Z%.3f  ; move down.
-; TODO(jerkey) code to switch off suckage
-; TODO(jerkey) code to switch on 'spitting out': short pressure burst
-G1 Z%.3f  ; Move up
+G1 Z%.3f    ; move down.
+M42 P6 S0    ; turn off suckage
+M42 P8 S255  ; blow
+G4 P100      ; .. for 100ms
+M42 P8 S0    ; done.
+G1 Z%.3f   ; Move up
 )";
 
 // component type -> Tape
@@ -192,7 +198,7 @@ void GCodePickNPlace::PrintPart(const Part &part) {
            print_name.c_str(),
            part.pos.x, part.pos.y, pz + Z_HOVERING,
            fmod(part.angle - tape->angle() + 360, 360.0),
-           pz,
+           pz + BOARD_THICKNESS,
            pz + Z_HOVERING);
 }
 

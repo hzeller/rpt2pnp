@@ -41,7 +41,7 @@ void CreateConfigTemplate(const Board::PartList& list) {
     printf("# space-delimited '<footprint>@<value>' behind each 'Tape:'\n");
     printf("# Each Tape section requires\n");
     printf("#   'origin:', which is the (x/y/z) position of\n");
-    printf("# the first component (z: pick-up-height). And\n");
+    printf("# the top of the first component (z: pick-up-height). And\n");
     printf("#   'spacing:', (dx,dy) to the next one\n#\n");
     printf("# Also there are the following optional parameters\n");
     printf("#angle: 0     # Optional: Angle on tape\n");
