@@ -25,12 +25,17 @@ static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
             "Options:\n"
             "\t-t      : Create config template from rpt. Needs editing.\n"
-            "\t-p <config> : 'assemble': Pick'n place. Using config + rpt.\n"
+            "\t-p <config> : Pick'n place. Using config + rpt.\n"
             "\t-P      : Output as PostScript.\n"
             "\t-c      : Output corner DryRun G-Code.\n"
-            "\t-d <ms> : Dispensing init time ms (default %.1f)\n"
+#if 0
+            // not working right now.
+            "\t-d <ms> : Dispensing soler paste. Init time ms (default %.1f)\n"
             "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
-            prog, minimum_milliseconds, area_to_milliseconds);
+
+            prog, minimum_milliseconds, area_to_milliseconds
+#endif
+            ,prog);
     return 1;
 }
 
@@ -65,12 +70,13 @@ void CreateConfigTemplate(const Board::PartList& list) {
 
 int main(int argc, char *argv[]) {
     enum OutputType {
+        OUT_NONE,
         OUT_DISPENSING,
         OUT_CORNER_GCODE,
         OUT_POSTSCRIPT,
         OUT_CONFIG_TEMPLATE,
         OUT_PICKNPLACE,
-    } output_type = OUT_DISPENSING;
+    } output_type = OUT_NONE;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
@@ -92,9 +98,11 @@ int main(int argc, char *argv[]) {
             filename = optarg;
             break;
         case 'd':
+            output_type = OUT_DISPENSING;
             start_ms = atof(optarg);
             break;
         case 'D':
+            output_type = OUT_DISPENSING;
             area_ms = atof(optarg);
             break;
         default: /* '?' */
@@ -129,8 +137,10 @@ int main(int argc, char *argv[]) {
         break;
     }
 
-    if (printer == NULL)
+    if (printer == NULL) {
+        usage(argv[0]);
         return 1;
+    }
 
     printer->Init(board.dimension());
 
