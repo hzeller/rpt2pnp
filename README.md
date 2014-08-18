@@ -43,7 +43,7 @@ So a manual workflow would typically be
 
 Now you need to edit the configuration to get the locations right. Then with
     
-    $ ./rpt2pnp -p config mykicadfile.rpt > pick-n-place.gcode
+    $ ./rpt2pnp -p config.txt mykicadfile.rpt > pick-n-place.gcode
 
 You generate the gcode that you can send to your machine.
 
