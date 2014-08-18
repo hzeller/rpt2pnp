@@ -41,15 +41,18 @@ static int usage(const char *prog) {
 
 void CreateConfigTemplate(const Board::PartList& list) {
     printf("Board:\norigin: 100 100 # x/y origin of the board\n\n");
-
-    printf("# Unlike this template, you can actually place multiple\n");
-    printf("# space-delimited '<footprint>@<value>' behind each 'Tape:'\n");
+    
+    printf("# This template provides one <footprint>@<component> per tape,\n");
+    printf("# but if you have multiple components that are indeed the same\n");
+    printf("# e.g. smd0805@100n smd0805@0.1uF, then you can just put them\n");
+    printf("# space delimited behind each Tape:\n");
+    printf("#   Tape: smd0805@100n smd0805@0.1uF\n");
     printf("# Each Tape section requires\n");
     printf("#   'origin:', which is the (x/y/z) position of\n");
     printf("# the top of the first component (z: pick-up-height). And\n");
     printf("#   'spacing:', (dx,dy) to the next one\n#\n");
     printf("# Also there are the following optional parameters\n");
-    printf("#angle: 0     # Optional: Angle on tape\n");
+    printf("#angle: 0     # Optional: Default rotation of component on tape.\n");
     printf("#count: 1000  # Optional: available count on tape\n");
     printf("\n");
 
