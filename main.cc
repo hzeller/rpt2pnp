@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include <set>
+#include <map>
 
 #include "board.h"
 #include "postscript-printer.h"
@@ -24,7 +24,10 @@ static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
 static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
             "Options:\n"
-            "\t-t      : Create config template from rpt. Needs editing.\n"
+            "\t-t      : Create config template from rpt to stdout. "
+            "Needs editing.\n"
+            "\t-l      : List found <footprint>@<component> <count> from rpt "
+            "to stdout.\n"
             "\t-p <config> : Pick'n place. Using config + rpt.\n"
             "\t-P      : Output as PostScript.\n"
             "\t-c      : Output corner DryRun G-Code.\n"
@@ -37,6 +40,19 @@ static int usage(const char *prog) {
 #endif
             ,prog);
     return 1;
+}
+
+typedef std::map<std::string, int> ComponentCount;
+
+// Extract components on board and their counts. Returns total components found.
+int ExtractComponents(const Board::PartList& list, ComponentCount *c) {
+    int total_count = 0;
+    for (auto* part : list) {
+        const std::string key = part->footprint + "@" + part->value;
+        (*c)[key]++;
+        ++total_count;
+    }
+    return total_count;
 }
 
 void CreateConfigTemplate(const Board::PartList& list) {
@@ -56,17 +72,25 @@ void CreateConfigTemplate(const Board::PartList& list) {
     printf("#count: 1000  # Optional: available count on tape\n");
     printf("\n");
 
-    int total_count = 0;
-    std::set<std::string> components;
-    for (auto* part : list) {
-        const std::string key = part->footprint + "@" + part->value;
-        components.insert(key);
-        ++total_count;
-    }
-    for (const std::string& c : components) {
-        printf("\nTape: %s\n", c.c_str());
+    ComponentCount components;
+    const int total_count = ExtractComponents(list, &components);
+    for (const auto &pair : components) {
+        printf("\nTape: %s\n", pair.first.c_str());
         printf("origin:  10 20 2 # fill me\n");
         printf("spacing: 4 0   # fill me\n");
+    }
+    fprintf(stderr, "%d components total\n", total_count);
+}
+
+void CreateList(const Board::PartList& list) {
+    ComponentCount components;
+    const int total_count = ExtractComponents(list, &components);
+    int longest = -1;
+    for (const auto &pair : components) {
+        longest = std::max((int)pair.first.length(), longest);
+    }
+    for (const auto &pair : components) {
+        printf("%-*s %4d\n", longest, pair.first.c_str(), pair.second);
     }
     fprintf(stderr, "%d components total\n", total_count);
 }
@@ -78,6 +102,7 @@ int main(int argc, char *argv[]) {
         OUT_CORNER_GCODE,
         OUT_POSTSCRIPT,
         OUT_CONFIG_TEMPLATE,
+        OUT_CONFIG_LIST,
         OUT_PICKNPLACE,
     } output_type = OUT_NONE;
 
@@ -85,7 +110,7 @@ int main(int argc, char *argv[]) {
     float area_ms = area_to_milliseconds;
     std::string filename;
     int opt;
-    while ((opt = getopt(argc, argv, "Pctp:d:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pctlp:d:D:")) != -1) {
         switch (opt) {
         case 'P':
             output_type = OUT_POSTSCRIPT;
@@ -95,6 +120,9 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             output_type = OUT_CONFIG_TEMPLATE;
+            break;
+        case 'l':
+            output_type = OUT_CONFIG_LIST;
             break;
         case 'p':
             output_type = OUT_PICKNPLACE;
@@ -124,6 +152,10 @@ int main(int argc, char *argv[]) {
 
     if (output_type == OUT_CONFIG_TEMPLATE) {
         CreateConfigTemplate(board.parts());
+        return 0;
+    }
+    if (output_type == OUT_CONFIG_LIST) {
+        CreateList(board.parts());
         return 0;
     }
 
