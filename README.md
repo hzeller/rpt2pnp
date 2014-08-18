@@ -11,7 +11,7 @@ General setup
 -------------
 
 Currently, the setup for rpt2pnp is relatively simple: you place the board on
-the Bed, and the tapes with opened 'lids' straight on the same bed. You tell
+the bed, and the tapes with opened 'lids' straight on the same bed. You tell
 rpt2pnp where the board is and the tapes, and it generates G-Code to do the
 operation.
 
@@ -50,9 +50,10 @@ You generate the gcode that you can send to your machine.
 If you want to create the configuration with a different program
 (e.g. https://github.com/jerkey/homer ), then it might simpler just to start out
 with a list of tape identifiers (something like `Capacitors_SMD:c_0805@C`) and
-create the configuration file from scratch (easier than parsing the template):
+create the configuration file from scratch (easier than parsing the template).
+There is a way to list all the tape identifiers with the `-l` option:
 
-     $ ./rpt2pnp -l terminal.rpt > list.txt
+     $ ./rpt2pnp -l mykicadfile.rpt > list.txt
      $ cat list.txt
      Capacitors_SMD:c_0805@C          7
      SMD_Packages:SM0805@2.2k         1
@@ -66,14 +67,18 @@ create the configuration file from scratch (easier than parsing the template):
 Configuration
 -------------
 
-The template output crates a configuration including descriptions.
-Mostly it is
-   - describing the board and its origin. (TODO: give sample component positions)
-   - describing the tapes that carry components, uniquely identified by
-     `<footprint>@<component>` (e.g. `SMD_Packages:SMD-0805@2.2k`).
+The configuration file consists of
 
-It typically looks like this - the template
-already contains some useful additional information.
+   - Board section. Describes board and its origin. (TODO: give sample
+     component positions)
+   - Tape section: Describing the tapes that carry components, uniquely
+     identified by `<footprint>@<component>` (e.g. `SMD_Packages:SMD-0805@2.2k`).
+     Each tape has an origin and a spacing describing how far components are
+     apart.
+
+The template output creates a configuration including descriptions; you need
+to modify all the numbers to match what you have on the bed.
+It typically looks like this:
 
      Board:
      origin: 100 100 # x/y origin of the board
@@ -102,7 +107,7 @@ already contains some useful additional information.
 
 G-Code
 ------
-Right now, the G-Code for each step is hardcoded in constant strings in
+Right now, the G-Code for processing steps is hardcoded in constant strings in
 `gcode-picknplace.cc`.
 
 Shortcomings
@@ -118,3 +123,6 @@ Also, the 'origin' of the board is somewhat useless unless you really know where
 that is. Better would be to give the positions of a few select components on
 the board (much easier to spot with a camera), and have rpt2pnp calculate the
 origin (and possibly rotation) of the board.
+
+Multiple boards - it would be good to provide multiple separate boards and their
+origins ... after all we are here for automation :)
