@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]) {
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
-    std::string filename;
+    const char *filename = NULL;
     int opt;
     while ((opt = getopt(argc, argv, "Pctlp:d:D:")) != -1) {
         switch (opt) {
@@ -125,8 +126,7 @@ int main(int argc, char *argv[]) {
             output_type = OUT_CONFIG_LIST;
             break;
         case 'p':
-            output_type = OUT_PICKNPLACE;
-            filename = optarg;
+            filename = strdup(optarg);
             break;
         case 'd':
             output_type = OUT_DISPENSING;
@@ -148,7 +148,12 @@ int main(int argc, char *argv[]) {
     const char *rpt_file = argv[optind];
 
     Board board;
-    board.ReadPartsFromRpt(rpt_file);
+    if (!board.ReadPartsFromRpt(rpt_file))
+        return 1;
+
+    if (output_type == OUT_NONE && filename != NULL) {
+        output_type = OUT_PICKNPLACE;
+    }
 
     if (output_type == OUT_CONFIG_TEMPLATE) {
         CreateConfigTemplate(board.parts());
@@ -168,7 +173,7 @@ int main(int argc, char *argv[]) {
         printer = new GCodeCornerIndicator(start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
-        printer = new PostScriptPrinter();
+        printer = new PostScriptPrinter(filename);
         break;
     case OUT_PICKNPLACE:
         // TODO: allow jogging to the various positions.

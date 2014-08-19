@@ -9,10 +9,13 @@
 
 class PostScriptPrinter : public Printer {
 public:
-    virtual ~PostScriptPrinter() {}
-    virtual void Init(const Dimension& board_dim);
-    virtual void PrintPart(const Part &part);
-    virtual void Finish();
+    // If we get a pnp configuration (i.e. non-NULL), we print the process.
+    PostScriptPrinter(const char *pnp_config);
+
+    ~PostScriptPrinter() override {}
+    void Init(const Dimension& board_dim) override;
+    void PrintPart(const Part &part) override;
+    void Finish() override;
     
 private:
     CornerPartCollector corners_;

@@ -62,7 +62,7 @@ M42 P8 S0    ; done.
 G1 Z%.3f   ; Move up
 )";
 
-GCodePickNPlace::GCodePickNPlace(const std::string& filename)
+GCodePickNPlace::GCodePickNPlace(const char *filename)
     : config_(ParsePnPConfiguration(filename)) {
     assert(config_);
 #if 0

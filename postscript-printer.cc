@@ -4,6 +4,10 @@
 
 #include "postscript-printer.h"
 
+PostScriptPrinter::PostScriptPrinter(const char *pnp_config) {
+    // TODO: read config.
+}
+
 void PostScriptPrinter::Init(const Dimension& board_dim) {
     corners_.SetCorners(0, 0, board_dim.w, board_dim.h);
     const float mm_to_point = 1 / 25.4 * 72.0;
