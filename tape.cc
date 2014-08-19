@@ -1,4 +1,4 @@
-/* -*- c++ -*-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; -*-
  * (c) h.zeller@acm.org. Free Software. GNU Public License v3.0 and above
  */
 #include <assert.h>
