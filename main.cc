@@ -56,8 +56,8 @@ int ExtractComponents(const Board::PartList& list, ComponentCount *c) {
 }
 
 void CreateConfigTemplate(const Board::PartList& list) {
-    printf("Board:\norigin: 100 100 # x/y origin of the board\n\n");
-    
+    printf("Board:\norigin: 100 100 # x/y origin of the board\n\n");    
+
     printf("# This template provides one <footprint>@<component> per tape,\n");
     printf("# but if you have multiple components that are indeed the same\n");
     printf("# e.g. smd0805@100n smd0805@0.1uF, then you can just put them\n");
@@ -161,9 +161,15 @@ int main(int argc, char *argv[]) {
 
     Printer *printer = NULL;
     switch (output_type) {
-    case OUT_DISPENSING:   printer = new GCodeDispensePrinter(start_ms, area_ms); break;
-    case OUT_CORNER_GCODE: printer = new GCodeCornerIndicator(start_ms, area_ms); break;
-    case OUT_POSTSCRIPT:   printer = new PostScriptPrinter(); break;
+    case OUT_DISPENSING:
+        printer = new GCodeDispensePrinter(start_ms, area_ms);
+        break;
+    case OUT_CORNER_GCODE:
+        printer = new GCodeCornerIndicator(start_ms, area_ms);
+        break;
+    case OUT_POSTSCRIPT:
+        printer = new PostScriptPrinter();
+        break;
     case OUT_PICKNPLACE:
         // TODO: allow jogging to the various positions.
         printer = new GCodePickNPlace(filename);

@@ -23,6 +23,7 @@ struct Part {
     // vector<Pad> // for paste dispensing. Not needed here for now.
 };
 
+// Representation of the board and its components.
 class Board {
 public:
     typedef std::vector<const Part*> PartList;
@@ -31,7 +32,7 @@ public:
     ~Board();
 
     // Read from kicad rpt file.
-     bool ReadPartsFromRpt(const std::string& filename);
+    bool ReadPartsFromRpt(const std::string& filename);
 
     // We need more coordinates here so that we can figure out a slightly
     // twisted board on the platform, ideally calibrated by moving the nozzle

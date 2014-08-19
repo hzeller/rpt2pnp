@@ -9,6 +9,8 @@
 #include "board.h"
 #include "corner-part-collector.h"
 
+class PnPConfig;
+
 class Printer {
 public:
     virtual ~Printer() {}
@@ -17,7 +19,8 @@ public:
     virtual void Finish() = 0;
 };
 
-// Some implementations of a printer. For lazyness reasons all in this header
+//-- Some implementations of a printer. For lazyness reasons all in this header
+
 class GCodeDispensePrinter : public Printer {
 public:
     // "init_ms" number of milliseconds to switch on the dispenser, then
@@ -56,11 +59,7 @@ public:
     virtual void Finish();
 
 private:
-    struct Config;
-
-    static Config *ParseConfig(const std::string& filename);
-
-    Config* config_;
+    PnPConfig* config_;
 };
 
 #endif  // PRINTER_H
