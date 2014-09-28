@@ -14,6 +14,7 @@
 #include <map>
 
 #include "board.h"
+#include "pnp-config.h"
 #include "postscript-printer.h"
 #include "printer.h"
 #include "rpt-parser.h"
@@ -29,10 +30,13 @@ static int usage(const char *prog) {
             "Needs editing.\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
-            "\t-p <config> : Pick'n place. Using config + rpt.\n"
+            "\t-h      : Create homer input from rpt\n"
+            "\t-p      : Pick'n place. Requires a config and rpt.\n"
             "\t-P      : Output as PostScript.\n"
-            "\t-c      : Output corner DryRun G-Code.\n"
+            "\t-c <config> : Use long config\n"
+            "\t-C <config> : Use homer config\n"
 #if 0
+            // dry run gcode.
             // not working right now.
             "\t-d <ms> : Dispensing soler paste. Init time ms (default %.1f)\n"
             "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
@@ -100,12 +104,12 @@ void CreateHomerInstruction(const Board &board) {
     ComponentCount components;
     ExtractComponents(board.parts(), &components);
     for (const auto &pair : components) {
-        printf("tape:%s\tfind first component\n",
-               pair.first.c_str());
-        int next = std::min(pair.second, 4);
-        if (next > 1) {
-            printf("tape:%s\tfind %d. component\n",
-                   pair.first.c_str(), next);
+        printf("tape%d:%s\tfind first component\n",
+               1, pair.first.c_str());
+        int next_pos = std::min(pair.second, 4);
+        if (next_pos > 1) {
+            printf("tape%d:%s\tfind %d. component\n",
+                   next_pos, pair.first.c_str(), next_pos);
         }
     }
 }
@@ -125,14 +129,19 @@ int main(int argc, char *argv[]) {
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
     const char *config_filename = NULL;
+    const char *simple_config_filename = NULL;
+
     int opt;
-    while ((opt = getopt(argc, argv, "Pctlhp:d:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:tlhpd:D:")) != -1) {
         switch (opt) {
         case 'P':
             output_type = OUT_POSTSCRIPT;
             break;
         case 'c':
-            output_type = OUT_CORNER_GCODE;
+            config_filename = strdup(optarg);
+            break;
+        case 'C':
+            simple_config_filename = strdup(optarg);
             break;
         case 't':
             output_type = OUT_CONFIG_TEMPLATE;
@@ -144,7 +153,7 @@ int main(int argc, char *argv[]) {
             output_type = OUT_HOMER_INSTRUCTION;
             break;
         case 'p':
-            config_filename = strdup(optarg);
+            output_type = OUT_PICKNPLACE;
             break;
         case 'd':
             output_type = OUT_DISPENSING;
@@ -169,7 +178,8 @@ int main(int argc, char *argv[]) {
     if (!board.ReadPartsFromRpt(rpt_file))
         return 1;
 
-    if (output_type == OUT_NONE && config_filename != NULL) {
+    if (output_type == OUT_NONE
+        && (config_filename != NULL || simple_config_filename != NULL)) {
         output_type = OUT_PICKNPLACE;
     }
 
@@ -186,6 +196,14 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    PnPConfig *config = NULL;
+
+    if (config_filename != NULL) {
+        config = ParsePnPConfiguration(config_filename);
+    } else if (simple_config_filename != NULL) {
+        config = ParseSimplePnPConfiguration(simple_config_filename);
+    }
+
     Printer *printer = NULL;
     switch (output_type) {
     case OUT_DISPENSING:
@@ -195,11 +213,10 @@ int main(int argc, char *argv[]) {
         printer = new GCodeCornerIndicator(start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
-        printer = new PostScriptPrinter(config_filename);
+        printer = new PostScriptPrinter(config);
         break;
     case OUT_PICKNPLACE:
-        // TODO: allow jogging to the various positions.
-        printer = new GCodePickNPlace(config_filename);
+        printer = new GCodePickNPlace(config);
         break;
     default:
         break;
@@ -212,6 +229,7 @@ int main(int argc, char *argv[]) {
 
     printer->Init(board.dimension());
 
+    // Feed all the parts to the printer.
     for (const Part* part : board.parts()) {
         printer->PrintPart(*part);
     }

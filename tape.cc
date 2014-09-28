@@ -28,7 +28,7 @@ void Tape::SetNumberComponents(int n) {
     count_ = n;
 }
 
-bool Tape::GetNextPos(float *x, float *y, float *z) {
+bool Tape::GetPos(float *x, float *y, float *z) {
     assert(x != NULL && y != NULL && z != NULL);
     if (count_ <= 0)
         return false;
@@ -36,6 +36,12 @@ bool Tape::GetNextPos(float *x, float *y, float *z) {
     *x = x_;
     *y = y_;
     *z = z_;
+    return true;
+}
+
+bool Tape::Advance() {
+    if (count_ <= 0)
+        return false;
 
     // Advance
     x_ = x_ + dx_;

@@ -9,7 +9,7 @@
 #include "board.h"
 #include "corner-part-collector.h"
 
-class PnPConfig;
+struct PnPConfig;
 
 class Printer {
 public:
@@ -53,14 +53,14 @@ private:
 
 class GCodePickNPlace : public Printer {
 public:
-    GCodePickNPlace(const char *pnp_config);
+    GCodePickNPlace(const PnPConfig *pnp_config);
 
     void Init(const Dimension& dim) override;
     void PrintPart(const Part& part) override;
     void Finish() override;
 
 private:
-    PnPConfig* config_;
+    const PnPConfig* config_;
 };
 
 #endif  // PRINTER_H

@@ -4,7 +4,7 @@
 
 #include "postscript-printer.h"
 
-PostScriptPrinter::PostScriptPrinter(const char *pnp_config) {
+PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config) {
     // TODO: read config.
 }
 

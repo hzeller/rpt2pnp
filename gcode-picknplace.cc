@@ -62,8 +62,7 @@ M42 P8 S0    ; done.
 G1 Z%.3f   ; Move up
 )";
 
-GCodePickNPlace::GCodePickNPlace(const char *filename)
-    : config_(ParsePnPConfiguration(filename)) {
+GCodePickNPlace::GCodePickNPlace(const PnPConfig *config) : config_(config) {
     assert(config_);
 #if 0
     fprintf(stderr, "Board-origin: (%.3f, %.3f)\n",
@@ -89,10 +88,11 @@ void GCodePickNPlace::PrintPart(const Part &part) {
     }
     Tape *tape = found->second;
     float px, py, pz;
-    if (!tape->GetNextPos(&px, &py, &pz)) {
+    if (!tape->GetPos(&px, &py, &pz)) {
         fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
         return;
     }
+    tape->Advance();
 
     const std::string print_name = part.component_name + " (" + key + ")";
     // param: name, x, y, zdown, a, zup

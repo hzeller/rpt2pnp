@@ -7,10 +7,11 @@
 #include "printer.h"
 #include "corner-part-collector.h"
 
+struct PnPConfig;
 class PostScriptPrinter : public Printer {
 public:
     // If we get a pnp configuration (i.e. non-NULL), we print the process.
-    PostScriptPrinter(const char *pnp_config);
+    PostScriptPrinter(const PnPConfig *config);
 
     ~PostScriptPrinter() override {}
     void Init(const Dimension& board_dim) override;

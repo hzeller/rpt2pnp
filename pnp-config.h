@@ -27,5 +27,9 @@ struct PnPConfig {
 
 // Parse configuration and return newly allocated config object or NULL on
 // parse error.
+// (TODO: maybe get rid of this in favor of simple pnp config)
 PnPConfig *ParsePnPConfiguration(const std::string& filename);
+
+// Simplified PNP config: one line at a time
+PnPConfig *ParseSimplePnPConfiguration(const std::string& filename);
 #endif  // PNP_CONFIG_H

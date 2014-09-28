@@ -4,6 +4,8 @@
 
 #include "pnp-config.h"
 
+#include <stdio.h>
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -15,6 +17,7 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     std::unique_ptr<PnPConfig> result(new PnPConfig());
 
     // TODO: this parsing is very simplistic.
+    // TODO: and ugly with c++ streams.
 
     std::string token;
     float x, y, z;
@@ -104,3 +107,45 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     }
     return result.release();
 }
+
+PnPConfig *ParseSimplePnPConfiguration(const std::string& filename) {
+    std::unique_ptr<PnPConfig> result(new PnPConfig());
+
+    FILE *in = fopen(filename.c_str(), "r");
+    if (!in) {
+        fprintf(stderr, "Can't open %s\n", filename.c_str());
+        return NULL;
+    }
+    char buffer[1024];
+    float x, y, z;
+    int tape_idx;
+    char package_id[256];
+    while (fgets(buffer, sizeof(buffer), in)) {
+        if (5 == sscanf(buffer, "tape%d:%s %f %f %f\n", &tape_idx, package_id,
+                        &x, &y, &z)) {
+            if (tape_idx == 1) {
+                Tape *t = new Tape();
+                t->SetFirstComponentPosition(x, y, z);
+                result->tape_for_component[package_id] = t;
+            } else {
+                PnPConfig::PartToTape::iterator found;
+                found = result->tape_for_component.find(package_id);
+                if (found != result->tape_for_component.end()) {
+                    Tape *t = found->second;
+                    const int advance = tape_idx - 1;
+                    float old_x, old_y, old_z;
+                    t->GetPos(&old_x, &old_y, &old_z);
+                    found->second->SetComponentSpacing((x - old_x) / advance,
+                                                       (y - old_y) / advance);
+                }
+            }
+            fprintf(stderr, "Yay, got %d '%s' (%.1f,%.1f,%.1f)\n", tape_idx,
+                   package_id, x, y, z);
+        } else {
+            fprintf(stderr, "Couldn't parse '%s'\n", buffer);
+        }
+    }
+
+    return result.release();
+}
+

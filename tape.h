@@ -25,8 +25,10 @@ public:
 
     // Get next component position. Returns 'true' if there is any, 'false'
     // if we exhausted our components.
-    // Advances on the tape, so each call yields a different position.
-    bool GetNextPos(float *x, float *y, float *z);
+    bool GetPos(float *x, float *y, float *z);
+
+    // Advances on the tape, so each call yields a different position
+    bool Advance();
 
     void DebugPrint() const;  // print to stderr.
 
