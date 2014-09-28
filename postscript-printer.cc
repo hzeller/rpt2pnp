@@ -13,7 +13,7 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
     const float mm_to_point = 1 / 25.4 * 72.0;
     printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
            -2 * mm_to_point, -2 * mm_to_point,
-           board_dim.h * mm_to_point, board_dim.w * mm_to_point);
+           board_dim.w * mm_to_point, board_dim.h * mm_to_point);
     printf("%s", R"(
 % <dx> <dy> <x0> <y0>
 /rect {
@@ -52,7 +52,7 @@ void PostScriptPrinter::PrintPart(const Part &part) {
            part.bounding_box.p1.x - part.bounding_box.p0.x,
            part.bounding_box.p1.y - part.bounding_box.p0.y,
            part.bounding_box.p0.x, part.bounding_box.p0.y,
-           (part.footprint + "@" + part.value).c_str(),
+           "", //(part.footprint + "@" + part.value).c_str(),
            part.component_name.c_str(),
            part.angle, part.pos.x, part.pos.y);
 }

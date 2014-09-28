@@ -34,12 +34,10 @@ public:
     // Read from kicad rpt file.
     bool ReadPartsFromRpt(const std::string& filename);
 
-    // We need more coordinates here so that we can figure out a slightly
-    // twisted board on the platform, ideally calibrated by moving the nozzle
-    // to certain pads.
-    // For now, we just assume some fixed origin.
-
+    // Parts. All positions are referenced to (0,0)
     const PartList& parts() const { return parts_; }
+
+    // The outline of the board.
     const Dimension& dimension() const { return board_dim_; }
 
     int PartCount() const { return parts_.size(); }

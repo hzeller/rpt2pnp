@@ -21,8 +21,8 @@ public:
 
 protected:
     void StartBoard(float max_x, float max_y) override {
-        board_dimension_->w = max_y;
-        board_dimension_->h = max_x;
+        board_dimension_->w = max_x;
+        board_dimension_->h = max_y;
     }
 
     void StartComponent(const std::string &c) override {

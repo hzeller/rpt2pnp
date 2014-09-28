@@ -52,12 +52,25 @@ typedef std::map<std::string, int> ComponentCount;
 // Extract components on board and their counts. Returns total components found.
 int ExtractComponents(const Board::PartList& list, ComponentCount *c) {
     int total_count = 0;
-    for (auto* part : list) {
+    for (const Part* part : list) {
         const std::string key = part->footprint + "@" + part->value;
         (*c)[key]++;
         ++total_count;
     }
     return total_count;
+}
+
+const Part *FindPartClosestTo(const Board::PartList& list, const Position &pos) {
+    const Part* result = NULL;
+    float closest = -1;
+    for (const Part* part : list) {
+        const float dist = Distance(part->pos, pos);
+        if (closest < 0 || dist < closest) {
+            result = part;
+            closest = dist;
+        }
+    }
+    return result;
 }
 
 void CreateConfigTemplate(const Board::PartList& list) {
@@ -111,6 +124,17 @@ void CreateHomerInstruction(const Board &board) {
             printf("tape%d:%s\tfind %d. component\n",
                    next_pos, pair.first.c_str(), next_pos);
         }
+    }
+    const Part *board_part = FindPartClosestTo(board.parts(), Position(0, 0));
+    if (board_part) {
+        printf("board:%s\tfind component center on board (bottom left)\n",
+               board_part->component_name.c_str());
+    }
+    board_part = FindPartClosestTo(board.parts(), Position(board.dimension().w,
+                                                           board.dimension().h));
+    if (board_part) {
+        printf("board:%s\tfind component center on board (top right)\n",
+               board_part->component_name.c_str());
     }
 }
 
