@@ -96,6 +96,20 @@ void CreateList(const Board::PartList& list) {
     fprintf(stderr, "%d components total\n", total_count);
 }
 
+void CreateHomerInstruction(const Board &board) {
+    ComponentCount components;
+    ExtractComponents(board.parts(), &components);
+    for (const auto &pair : components) {
+        printf("tape:%s\tfind first component\n",
+               pair.first.c_str());
+        int next = std::min(pair.second, 4);
+        if (next > 1) {
+            printf("tape:%s\tfind %d. component\n",
+                   pair.first.c_str(), next);
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     enum OutputType {
         OUT_NONE,
@@ -104,14 +118,15 @@ int main(int argc, char *argv[]) {
         OUT_POSTSCRIPT,
         OUT_CONFIG_TEMPLATE,
         OUT_CONFIG_LIST,
+        OUT_HOMER_INSTRUCTION,
         OUT_PICKNPLACE,
     } output_type = OUT_NONE;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
-    const char *filename = NULL;
+    const char *config_filename = NULL;
     int opt;
-    while ((opt = getopt(argc, argv, "Pctlp:d:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pctlhp:d:D:")) != -1) {
         switch (opt) {
         case 'P':
             output_type = OUT_POSTSCRIPT;
@@ -125,8 +140,11 @@ int main(int argc, char *argv[]) {
         case 'l':
             output_type = OUT_CONFIG_LIST;
             break;
+        case 'h':
+            output_type = OUT_HOMER_INSTRUCTION;
+            break;
         case 'p':
-            filename = strdup(optarg);
+            config_filename = strdup(optarg);
             break;
         case 'd':
             output_type = OUT_DISPENSING;
@@ -151,7 +169,7 @@ int main(int argc, char *argv[]) {
     if (!board.ReadPartsFromRpt(rpt_file))
         return 1;
 
-    if (output_type == OUT_NONE && filename != NULL) {
+    if (output_type == OUT_NONE && config_filename != NULL) {
         output_type = OUT_PICKNPLACE;
     }
 
@@ -161,6 +179,10 @@ int main(int argc, char *argv[]) {
     }
     if (output_type == OUT_CONFIG_LIST) {
         CreateList(board.parts());
+        return 0;
+    }
+    if (output_type == OUT_HOMER_INSTRUCTION) {
+        CreateHomerInstruction(board);
         return 0;
     }
 
@@ -173,11 +195,11 @@ int main(int argc, char *argv[]) {
         printer = new GCodeCornerIndicator(start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
-        printer = new PostScriptPrinter(filename);
+        printer = new PostScriptPrinter(config_filename);
         break;
     case OUT_PICKNPLACE:
         // TODO: allow jogging to the various positions.
-        printer = new GCodePickNPlace(filename);
+        printer = new GCodePickNPlace(config_filename);
         break;
     default:
         break;
