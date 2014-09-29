@@ -26,15 +26,16 @@ static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
 static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
             "Options:\n"
+            "\t-h      : Create homer input from rpt\n"
             "\t-t      : Create config template from rpt to stdout. "
             "Needs editing.\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
-            "\t-h      : Create homer input from rpt\n"
+            "[Operations]\n"
+            "\t-c <config> : Use edited config from -t \n"
+            "\t-C <config> : Use homer config created via homer from -h\n"
             "\t-p      : Pick'n place. Requires a config and rpt.\n"
             "\t-P      : Output as PostScript.\n"
-            "\t-c <config> : Use long config\n"
-            "\t-C <config> : Use homer config\n"
 #if 0
             // dry run gcode.
             // not working right now.
@@ -225,7 +226,7 @@ int main(int argc, char *argv[]) {
     if (config_filename != NULL) {
         config = ParsePnPConfiguration(config_filename);
     } else if (simple_config_filename != NULL) {
-        config = ParseSimplePnPConfiguration(simple_config_filename);
+        config = ParseSimplePnPConfiguration(board, simple_config_filename);
     }
 
     Printer *printer = NULL;

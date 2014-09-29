@@ -10,6 +10,8 @@
 #include "rpt2pnp.h"
 
 class Tape;
+class Board;
+
 // (for now: simple) configuration for the setup needed to do pick-n-place.
 // TODO:
 //  - reference position on board
@@ -31,5 +33,6 @@ struct PnPConfig {
 PnPConfig *ParsePnPConfiguration(const std::string& filename);
 
 // Simplified PNP config: one line at a time
-PnPConfig *ParseSimplePnPConfiguration(const std::string& filename);
+PnPConfig *ParseSimplePnPConfiguration(const Board &board,
+                                       const std::string& filename);
 #endif  // PNP_CONFIG_H

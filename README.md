@@ -31,11 +31,13 @@ The invocation without parameters shows the usage:
 
      Usage: ./rpt2pnp <options> <rpt-file>
      Options:
-         -t      : Create config template from rpt to stdout. Needs editing.
-         -l      : List found <footprint>@<component> <count> from rpt to stdout.
-         -p <config> : Pick'n place. Using config + rpt.
-         -P      : Output as PostScript.
-         -c      : Output corner DryRun G-Code.
+        -h      : Create homer input from rpt
+        -t      : Create config template from rpt to stdout. Needs editing.
+     [Operations]
+        -c <config> : Use long config from -t
+        -C <config> : Use homer config created via homer from -h
+        -p      : Pick'n place. Requires a config and rpt.
+        -P      : Output as PostScript.
 
 So a manual workflow would typically be
 
@@ -43,30 +45,24 @@ So a manual workflow would typically be
 
 Now you need to edit the configuration to get the locations right. Then with
     
-    $ ./rpt2pnp -p config.txt mykicadfile.rpt > pick-n-place.gcode
+     $ ./rpt2pnp -c config.txt -p mykicadfile.rpt > pick-n-place.gcode
 
 You generate the gcode that you can send to your machine.
 
 If you want to create the configuration with a different program
-(e.g. https://github.com/jerkey/homer ), then it might simpler just to start out
-with a list of tape identifiers (something like `Capacitors_SMD:c_0805@C`) and
-create the configuration file from scratch (easier than parsing the template).
-There is a way to list all the tape identifiers with the `-l` option:
+(e.g. https://github.com/jerkey/homer ), then use the `-h` option to create
+a homer template
 
-     $ ./rpt2pnp -l mykicadfile.rpt > list.txt
-     $ cat list.txt
-     Capacitors_SMD:c_0805@C          7
-     SMD_Packages:SM0805@2.2k         1
-     SMD_Packages:SM0805@82           2
-     SMD_Packages:SMD-0805@12         1
-     SMD_Packages:SMD-0805@2.2k       2
-     SMD_Packages:SMD-0805@3k         1
-     SMD_Packages:TSSOP-16@SP3232E    1
+     $ ./rpt2pnp -h mykicadfile.rpt > homer-input.txt
 
+.. Then create a configuration with homer, and input it via the `-C` option
+
+     $ ./rpt2pnp -C config.txt -p mykicadfile.rpt > pick-n-place.gcode
 
 Configuration
 -------------
 
+This describes the 'long' configuration created with `-t`.
 The configuration file consists of
 
    - Board section. Describes board and its origin. (TODO: give sample

@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "tape.h"
+#include "board.h"
 
 PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     std::unique_ptr<PnPConfig> result(new PnPConfig());
@@ -108,7 +109,19 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     return result.release();
 }
 
-PnPConfig *ParseSimplePnPConfiguration(const std::string& filename) {
+static bool FindPartPos(const Board &board, const char *part_name,
+                        Position *pos) {
+    for (const Part* part : board.parts()) {
+        if (part->component_name == part_name) {
+            *pos = part->pos;
+            return true;
+        }
+    }
+    return false;
+}
+
+PnPConfig *ParseSimplePnPConfiguration(const Board &board,
+                                       const std::string& filename) {
     std::unique_ptr<PnPConfig> result(new PnPConfig());
 
     FILE *in = fopen(filename.c_str(), "r");
@@ -119,17 +132,17 @@ PnPConfig *ParseSimplePnPConfiguration(const std::string& filename) {
     char buffer[1024];
     float x, y, z;
     int tape_idx;
-    char package_id[256];
+    char designator[256];
     while (fgets(buffer, sizeof(buffer), in)) {
-        if (5 == sscanf(buffer, "tape%d:%s %f %f %f\n", &tape_idx, package_id,
+        if (5 == sscanf(buffer, "tape%d:%s %f %f %f\n", &tape_idx, designator,
                         &x, &y, &z)) {
             if (tape_idx == 1) {
                 Tape *t = new Tape();
                 t->SetFirstComponentPosition(x, y, z);
-                result->tape_for_component[package_id] = t;
+                result->tape_for_component[designator] = t;
             } else {
                 PnPConfig::PartToTape::iterator found;
-                found = result->tape_for_component.find(package_id);
+                found = result->tape_for_component.find(designator);
                 if (found != result->tape_for_component.end()) {
                     Tape *t = found->second;
                     const int advance = tape_idx - 1;
@@ -139,8 +152,15 @@ PnPConfig *ParseSimplePnPConfiguration(const std::string& filename) {
                                                        (y - old_y) / advance);
                 }
             }
-            fprintf(stderr, "Yay, got %d '%s' (%.1f,%.1f,%.1f)\n", tape_idx,
-                   package_id, x, y, z);
+        } else if (4 == sscanf(buffer, "board:%s %f %f %f\n", designator,
+                               &x, &y, &z)) {
+            Position part_pos;
+            if (FindPartPos(board, designator, &part_pos)) {
+                result->board.origin.x = x - part_pos.x;
+                result->board.origin.y = y - part_pos.y;
+            } else {
+                fprintf(stderr, "Trouble finding '%s'\n", designator);
+            }
         } else {
             fprintf(stderr, "Couldn't parse '%s'\n", buffer);
         }
