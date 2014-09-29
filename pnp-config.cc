@@ -139,6 +139,13 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
                         &x, &y, &z)) {
             if (tape_idx == 1) {
                 Tape *t = new Tape();
+
+                // TODO(hzeller): make configurable. Empirically, this is true
+                // for the 0805 components we have been playing with.
+                // (really it is the relative angle to what people drew in
+                // KiCad component vs. how it is on tape).
+                t->SetAngle(90);
+
                 t->SetFirstComponentPosition(x, y, z);
                 result->tape_for_component[designator] = t;
             } else {

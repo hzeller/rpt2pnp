@@ -70,7 +70,9 @@ void PostScriptPrinter::PrintPart(const Part &part) {
 
     // Print component on tape
     printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
-           2.0, 2.0, 0.0, 0.0,
+           part.bounding_box.p1.x - part.bounding_box.p0.x,
+           part.bounding_box.p1.y - part.bounding_box.p0.y,
+           part.bounding_box.p0.x, part.bounding_box.p0.y,
            "", part.component_name.c_str(),
            tape->angle(),
            tx, ty);
