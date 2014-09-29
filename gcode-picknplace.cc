@@ -59,7 +59,7 @@ G4
 M42 P6 S0    ; turn off suckage
 G4
 M42 P8 S255  ; blow
-G4 P100      ; .. for 100ms
+G4 P40       ; .. for 40ms
 M42 P8 S0    ; done.
 G1 Z%.3f   ; Move up
 )";
