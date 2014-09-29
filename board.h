@@ -11,6 +11,12 @@
 
 #include "rpt2pnp.h"
 
+struct Pad {
+    Position pos;
+    Dimension size;
+    std::string name;
+};
+
 // A part on the board.
 struct Part {
     Part() : pos(), angle(0) {}
@@ -18,9 +24,10 @@ struct Part {
     std::string value;           // component value, e.g. 100k
     std::string footprint;       // footprint of component if known.
     Position pos;                // Relative to board
-    Box bounding_box;            // relative to pos
     float angle;                 // Rotation
-    // vector<Pad> // for paste dispensing. Not needed here for now.
+    // The pads are roated around pos with angle.
+    std::vector<Pad> pads;       // For paste dispensing and image recognition.
+    Box bounding_box;            // relative to pos
 };
 
 // Representation of the board and its components.

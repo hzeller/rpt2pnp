@@ -51,16 +51,19 @@ protected:
 
     // Not caring about pads right now.
     void StartPad(const std::string &c) override {
+        current_pad_.name = c;
         in_pad_ = true;
     }
     void EndPad() override {
         in_pad_ = false;
+        if (current_part_) {
+            current_part_->pads.push_back(current_pad_);
+        }
     }
 
     void Position(float x, float y) override {
         if (in_pad_) {
-            rotateXY(&x, &y);
-            pad_position_.Set(x, y);
+            current_pad_.pos.Set(x, y);
         } else {
             current_part_->pos.x = x;
             current_part_->pos.y = y;
@@ -69,17 +72,21 @@ protected:
 
     void Size(float w, float h) override {
         if (in_pad_) {
+            current_pad_.size.w = w;
+            current_pad_.size.h = h;
+
+            // TODO:
             float x, y;
-            x = pad_position_.x - w/2;
+            x = current_pad_.pos.x - w/2;
             if (x < current_part_->bounding_box.p0.x)
                 current_part_->bounding_box.p0.x = x;
-            x = pad_position_.x + w/2;
+            x = current_pad_.pos.x + w/2;
             if (x > current_part_->bounding_box.p1.x)
                 current_part_->bounding_box.p1.x = x;
-            y = pad_position_.y - h/2;
+            y = current_pad_.pos.y - h/2;
             if (y < current_part_->bounding_box.p0.y)
                 current_part_->bounding_box.p0.y = y;
-            y = pad_position_.y + h/2;
+            y = current_pad_.pos.y + h/2;
             if (y > current_part_->bounding_box.p1.y)
                 current_part_->bounding_box.p1.y = y;
         }
@@ -112,7 +119,7 @@ private:
     float drillSum; // add up all the pad drill sizes, should be 0 for smt
     bool in_pad_;
 
-    ::Position pad_position_;
+    ::Pad current_pad_;
     std::string component_name_;
     Part *current_part_;
     std::vector<const Part*> *collected_parts_;
