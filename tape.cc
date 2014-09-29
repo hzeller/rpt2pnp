@@ -5,10 +5,12 @@
 
 #include "tape.h"
 #include <stdio.h>
+#include <math.h>
 
 Tape::Tape()
     : x_(0), y_(0), z_(0),
       dx_(0), dy_(0),
+      angle_(0), slant_angle_(0),
       count_(1000) {
 }
 
@@ -22,6 +24,7 @@ void Tape::SetComponentSpacing(float dx, float dy) {
     dx_ = dx;
     dy_ = dy;
     // No height difference between components (I hope :) )
+    slant_angle_ = 360.0 / (2 * M_PI) * atan2f(dy, dx);
 }
 
 void Tape::SetNumberComponents(int n) {

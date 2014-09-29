@@ -5,6 +5,7 @@
 #include "pnp-config.h"
 
 #include <stdio.h>
+#include <math.h>
 
 #include <fstream>
 #include <iostream>
@@ -148,8 +149,12 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
                     const int advance = tape_idx - 1;
                     float old_x, old_y, old_z;
                     t->GetPos(&old_x, &old_y, &old_z);
-                    found->second->SetComponentSpacing((x - old_x) / advance,
-                                                       (y - old_y) / advance);
+                    const float dx = (x - old_x) / advance;
+                    const float dy = (y - old_y) / advance;
+                    found->second->SetComponentSpacing(dx, dy);
+                    fprintf(stderr, "Δ=%.2fmm ∡=%5.1f° %s\n",
+                            sqrt(dx*dx + dy*dy), found->second->angle(),
+                            designator);
                 }
             }
         } else if (4 == sscanf(buffer, "board:%s %f %f %f\n", designator,

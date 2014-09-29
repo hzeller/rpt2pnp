@@ -16,7 +16,8 @@
 
 // Placement needs to be a bit higher.
 //#define TAPE_TO_BOARD_DIFFZ 1.6
-#define TAPE_TO_BOARD_DIFFZ -2.0
+//#define TAPE_TO_BOARD_DIFFZ -2.0
+#define TAPE_TO_BOARD_DIFFZ 0
 
 // All templates should be in a separate file somewhere so that we don't
 // have to compile.
@@ -31,9 +32,10 @@ const char *const gcode_preamble = R"(
 ; (correction: for now, we mess with an E-axis instead of A)
 G28 X0 Y0  ; Now home (x/y) - needle over free space
 G28 Z0     ; Now it is safe to home z
-T1         ; Use E1 extruder
-M302
-G92 E0
+T1         ; Use E1 extruder, our 'A' axis.
+M302       ; cold extrusion override - because it is not actually an extruder.
+G92 E0     ; 'home' E axis
+G90        ; Use absolute positions in general.
 
 G1 Z35 E0 F2500 ; Move needle out of way
 )";
@@ -45,7 +47,7 @@ G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
 G1 Z%.3f   ; move down
 G4
 M42 P6 S255  ; turn on suckage
-G1 Z%.3f  ; Move up a bit for traveling
+G1 Z%.3f  ; Move up a bit for travelling
 )";
 
 // param: name, x, y, zup, a, zdown, zup

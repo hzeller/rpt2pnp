@@ -20,6 +20,7 @@ public:
     
 private:
     CornerPartCollector corners_;
+    const PnPConfig *config_;
 };
 
 #endif  // POSTSCRIPT_PRINTER_H

@@ -18,10 +18,8 @@ public:
     void SetNumberComponents(int n);
     void SetAngle(float a) { angle_ = a; }
 
-    // TODO: this is not accurate. We should make this relative to the
-    // slant of the tape, e.g. its angle on the x/y table according to
-    // SetComponentSpacing()
-    float angle() const { return angle_; }
+    // Return angle, including slant
+    float angle() const { return angle_ + slant_angle_; }
 
     // Get next component position. Returns 'true' if there is any, 'false'
     // if we exhausted our components.
@@ -35,7 +33,7 @@ public:
 private:
     float x_, y_, z_;
     float dx_, dy_;
-    float angle_;
+    float angle_, slant_angle_;
     int count_;
 };
 

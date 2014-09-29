@@ -4,8 +4,13 @@
 
 #include "postscript-printer.h"
 
-PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config) {
-    // TODO: read config.
+#include "pnp-config.h"
+
+PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config)
+    : config_(pnp_config) {
+    if (config_ == NULL) {
+        config_ = new PnPConfig();
+    }
 }
 
 void PostScriptPrinter::Init(const Dimension& board_dim) {
@@ -13,7 +18,7 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
     const float mm_to_point = 1 / 25.4 * 72.0;
     printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
            -2 * mm_to_point, -2 * mm_to_point,
-           board_dim.w * mm_to_point, board_dim.h * mm_to_point);
+           300 * mm_to_point, 300 * mm_to_point);
     printf("%s", R"(
 % <dx> <dy> <x0> <y0>
 /rect {
@@ -44,6 +49,8 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
     printf("0.1 setlinewidth\n");
     printf("/Helvetica findfont 1 scalefont setfont\n");
     printf("%.1f %.1f moveto\n", 0.0, 0.0);
+    printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
+           config_->board.origin.x, config_->board.origin.y);
 }
 
 void PostScriptPrinter::PrintPart(const Part &part) {
@@ -54,7 +61,9 @@ void PostScriptPrinter::PrintPart(const Part &part) {
            part.bounding_box.p0.x, part.bounding_box.p0.y,
            "", //(part.footprint + "@" + part.value).c_str(),
            part.component_name.c_str(),
-           part.angle, part.pos.x, part.pos.y);
+           part.angle,
+           part.pos.x + config_->board.origin.x,
+           part.pos.y + config_->board.origin.y);
 }
 
 void PostScriptPrinter::Finish() {
