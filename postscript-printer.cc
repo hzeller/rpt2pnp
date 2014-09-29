@@ -54,29 +54,33 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
 }
 
 void PostScriptPrinter::PrintPart(const Part &part) {
+    Tape *tape = NULL;
     const std::string key = part.footprint + "@" + part.value;
     auto found = config_->tape_for_component.find(key);
-    if (found == config_->tape_for_component.end()) {
+    if (found != config_->tape_for_component.end()) {
+        tape = found->second;
+    } else {
+        // TODO: only print once.
         fprintf(stderr, "No tape for '%s'\n", key.c_str());
-        return;
     }
-    Tape *tape = found->second;
-    float tx, ty, tz;
-    if (!tape->GetPos(&tx, &ty, &tz)) {
-        fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
-        return;
-    }
-    tape->Advance();
 
-    // Print component on tape
-    printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
-           part.bounding_box.p1.x - part.bounding_box.p0.x,
-           part.bounding_box.p1.y - part.bounding_box.p0.y,
-           part.bounding_box.p0.x, part.bounding_box.p0.y,
-           "", part.component_name.c_str(),
-           tape->angle(),
-           tx, ty);
-    // TODO: line between here and there
+    float tx, ty, tz;
+    if (tape && tape->GetPos(&tx, &ty, &tz)) {
+        tape->Advance();
+        // Print component on tape
+        printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
+               part.bounding_box.p1.x - part.bounding_box.p0.x,
+               part.bounding_box.p1.y - part.bounding_box.p0.y,
+               part.bounding_box.p0.x, part.bounding_box.p0.y,
+               "", part.component_name.c_str(),
+               tape->angle(),
+               tx, ty);
+    } else {
+        // Maybe just print component in red ?
+        //fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
+    }
+
+    // TODO: line between component on tape and board
 
     // Print part on board.
     printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
