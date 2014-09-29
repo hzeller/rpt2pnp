@@ -19,7 +19,6 @@ public:
     void Finish() override;
     
 private:
-    CornerPartCollector corners_;
     const PnPConfig *config_;
 };
 

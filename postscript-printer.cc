@@ -5,6 +5,7 @@
 #include "postscript-printer.h"
 
 #include "pnp-config.h"
+#include "tape.h"
 
 PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config)
     : config_(pnp_config) {
@@ -14,7 +15,6 @@ PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config)
 }
 
 void PostScriptPrinter::Init(const Dimension& board_dim) {
-    corners_.SetCorners(0, 0, board_dim.w, board_dim.h);
     const float mm_to_point = 1 / 25.4 * 72.0;
     printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
            -2 * mm_to_point, -2 * mm_to_point,
@@ -36,7 +36,7 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
     translate
     rotate
     0 0 moveto
-    0 0 0.1 0 360 arc
+    0 0 0.1 0 360 arc  % mark center
     0 0 1 setrgbcolor show % name
     0 0 0 setrgbcolor ( / ) show
     1 0 0 setrgbcolor show % value
@@ -54,7 +54,29 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
 }
 
 void PostScriptPrinter::PrintPart(const Part &part) {
-    corners_.Update(part.pos, part);
+    const std::string key = part.footprint + "@" + part.value;
+    auto found = config_->tape_for_component.find(key);
+    if (found == config_->tape_for_component.end()) {
+        fprintf(stderr, "No tape for '%s'\n", key.c_str());
+        return;
+    }
+    Tape *tape = found->second;
+    float tx, ty, tz;
+    if (!tape->GetPos(&tx, &ty, &tz)) {
+        fprintf(stderr, "We are out of components for '%s'\n", key.c_str());
+        return;
+    }
+    tape->Advance();
+
+    // Print component on tape
+    printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
+           2.0, 2.0, 0.0, 0.0,
+           "", part.component_name.c_str(),
+           tape->angle(),
+           tx, ty);
+    // TODO: line between here and there
+
+    // Print part on board.
     printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pp\n",
            part.bounding_box.p1.x - part.bounding_box.p0.x,
            part.bounding_box.p1.y - part.bounding_box.p0.y,
@@ -67,15 +89,5 @@ void PostScriptPrinter::PrintPart(const Part &part) {
 }
 
 void PostScriptPrinter::Finish() {
-#if 0
-    // Doesn't work that well currently.
-    printf("0 0 1 setrgbcolor\n");
-    for (int i = 0; i < 4; ++i) {
-        //const ::Part &part = corners_.get_part(i);
-        const Position &pos = corners_.get_closest(i);
-        printf("%.1f 2 add %.1f moveto %.1f %.1f 2 0 360 arc stroke\n",
-               pos.x, pos.y, pos.x, pos.y);
-    }
-#endif
     printf("showpage\n");
 }
