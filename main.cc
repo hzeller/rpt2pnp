@@ -34,9 +34,10 @@ static int usage(const char *prog) {
             "[Operations]\n"
             "\t-c <config> : Use edited config from -t \n"
             "\t-C <config> : Use homer config created via homer from -h\n"
-            "\t-p      : Pick'n place. Requires a config and rpt.\n"
-            "\t-P      : Output as PostScript.\n"
-            "\t-d      : Dispensing solder paste.\n", prog);
+            "\t-d      : Dispensing solder paste GCode generation.\n"
+            "\t-p      : Pick'n place GCode generation.\n"
+            "\t-P      : Output as PostScript.\n",
+            prog);
     return 1;
 }
 
