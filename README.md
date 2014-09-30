@@ -1,16 +1,15 @@
 Pick-and-place assembly G-Code
 ==============================
 
-Right now, this code translates a KiCAD RPT file to G-Code for pick-and-place
-assembly on a 3D printer. You need vacuum needlde and solenoids.
-
-(this is based https://github.com/hzeller/rpt2paste and will eventually be merged
- to one program useful for everything.)
+This code translates a KiCAD RPT file to G-Code for solder-paste dispensing
+and pick-and-place assembly on a 3D printer.
+You need vacuum needle and solenoids for Pick'n place and a pressure pump
+and paste syringe for solder paste dispensing.
 
 General setup
 -------------
 
-Currently, the setup for rpt2pnp is relatively simple: you place the board on
+The setup for rpt2pnp is relatively simple: you place the board on
 the bed, and the tapes with opened 'lids' straight on the same bed. You tell
 rpt2pnp where the board is and the tapes, and it generates G-Code to do the
 operation.
@@ -23,46 +22,60 @@ Using
 In general, you invoke `rpt2pnp` with an option to tell what to do and a
 KiCAD rpt file.
 
-To do the pick-and-place operation, you need a configuration file with the origin
-of the board and the locations of the tapes. Given an rpt file, `rpt2pnp` can
-generate a template configuration that you need to modify.
+To do any of paste-dispensing or pick-and-place operation, you need a
+configuration file with the origin of the board and the locations of the tapes.
 
 The invocation without parameters shows the usage:
 
      Usage: ./rpt2pnp <options> <rpt-file>
      Options:
-        -h      : Create homer input from rpt
-        -t      : Create config template from rpt to stdout. Needs editing.
+        -h      : Create homer configuration script from rpt.
+        -l      : List found <footprint>@<component> <count> from rpt to stdout.
      [Operations]
-        -c <config> : Use long config from -t
         -C <config> : Use homer config created via homer from -h
-        -p      : Pick'n place. Requires a config and rpt.
+        -d      : Dispensing solder paste GCode generation.
+        -p      : Pick'n place GCode generation.
         -P      : Output as PostScript.
 
-So a manual workflow would typically be
+Typically the workflow would be to create configuration via
+homer ( https://github.com/jerkey/homer ).
+Use the `-h` option to create a homer template
 
-     $ ./rpt2pnp -t mykicadfile.rpt > config.txt
+     $ ./rpt2pnp mykicadfile.rpt -h > homer-input.txt
 
-Now you need to edit the configuration to get the locations right. Then with
-    
-     $ ./rpt2pnp -c config.txt -p mykicadfile.rpt > pick-n-place.gcode
+.. Then create a configuration with homer, and input it via the `-C` option.
+With option `-d` or `-p` you choose the GCode output for dispensing or pnp:
 
-You generate the gcode that you can send to your machine.
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -d > paste-dispensing.gcode
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p > pick-n-place.gcode     
 
-If you want to create the configuration with a different program
-(e.g. https://github.com/jerkey/homer ), then use the `-h` option to create
-a homer template
+You can also create a PostScript view of the board/tape layout
 
-     $ ./rpt2pnp -h mykicadfile.rpt > homer-input.txt
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -P > out.ps
 
-.. Then create a configuration with homer, and input it via the `-C` option
+G-Code
+------
+Right now, the G-Code templates for processing steps is hardcoded in
+constant strings in `gcode-picknplace.cc` and `gcode-dispense-printer.cc`
 
-     $ ./rpt2pnp -C config.txt -p mykicadfile.rpt > pick-n-place.gcode
+Shortcomings
+------------
+This is work in progress.
 
-Configuration
--------------
+Missing features:
+   - an arbitrary rotated board.
+   - multiple boards
+   - not only tapes, but feeders
+   - semi-automatic registration using OpenCV
 
-This describes the 'long' configuration created with `-t`.
+Long Configuration
+------------------
+
+This describes the 'long' configuration created with `-t`. Typically you'll
+use the shorter configuration created with `-h`. This long configuration might
+go away as the short one seems to do its job (and also it might even more so
+go away as we'll register things optically). So this section might go away :)
+
 The configuration file consists of
 
    - Board section. Describes board and its origin. (TODO: give sample
@@ -100,25 +113,3 @@ It typically looks like this:
      Tape: SMD_Packages:SM0805@2.2k
      origin:  10 20 2 # fill me
      spacing: 4 0   # fill me
-
-G-Code
-------
-Right now, the G-Code for processing steps is hardcoded in constant strings in
-`gcode-picknplace.cc`.
-
-Shortcomings
-------------
-Numerous. To be addressed soon.
-
-So far only tested with a very simple setup. One thing missing
-for instance is configuration of board-thickness; right now that is hardcoded
-in `#define TAPE_TO_BOARD_DIFFZ`, but it really should be a parameter in the
-'Board' part of the configuration.
-
-Also, the 'origin' of the board is somewhat useless unless you really know where
-that is. Better would be to give the positions of a few select components on
-the board (much easier to spot with a camera), and have rpt2pnp calculate the
-origin (and possibly rotation) of the board.
-
-Multiple boards - it would be good to provide multiple separate boards and their
-origins ... after all we are here for automation :)
