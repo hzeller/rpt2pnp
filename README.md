@@ -1,10 +1,12 @@
-Pick-and-place assembly G-Code
-==============================
+Solder paste dispensing and Pick-and-place assembly G-Code
+==========================================================
 
 This code translates a KiCAD RPT file to G-Code for solder-paste dispensing
 and pick-and-place assembly on a 3D printer.
-You need vacuum needle and solenoids for Pick'n place and a pressure pump
+You need a vacuum needle and solenoids for Pick'n place and a pressure pump
 and paste syringe for solder paste dispensing.
+
+(TODO: describe hardware setup)
 
 General setup
 -------------
