@@ -5,7 +5,6 @@
 #define POSTSCRIPT_PRINTER_H
 
 #include "printer.h"
-#include "corner-part-collector.h"
 
 struct PnPConfig;
 class PostScriptPrinter : public Printer {

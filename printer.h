@@ -9,7 +9,6 @@
 
 #include "rpt2pnp.h"
 #include "board.h"
-#include "corner-part-collector.h"
 
 struct PnPConfig;
 
