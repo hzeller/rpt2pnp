@@ -15,6 +15,8 @@
 #include "tape.h"
 #include "board.h"
 
+#define TYPICAL_BOARD_THICKNESS 1.6
+
 PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     std::unique_ptr<PnPConfig> result(new PnPConfig());
 
@@ -173,11 +175,28 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
             } else {
                 fprintf(stderr, "Trouble finding '%s'\n", designator);
             }
+            result->board.top = z;
+            if (result->bed_level < 0) {
+                result->bed_level = result->board.top - TYPICAL_BOARD_THICKNESS;
+            }
+        } else if (4 == sscanf(buffer, "bedlevel:%s %f %f %f\n", designator,
+                               &x, &y, &z)) {
+            result->bed_level = z;
         } else {
             fprintf(stderr, "Couldn't parse '%s'\n", buffer);
         }
     }
 
+    // Cross check
+    float lowest_value = result->board.top;
+    for (const auto &t : result->tape_for_component) {
+        lowest_value = std::min(lowest_value, t.second->height());
+    }
+    if (lowest_value < result->bed_level) {
+        fprintf(stderr, "Mmh, looks like there are things _below_ bed-level?\n"
+                "I'd consider this an error ...\n");
+        return NULL;
+    }
     return result.release();
 }
 

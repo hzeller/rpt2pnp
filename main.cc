@@ -107,6 +107,7 @@ void CreateList(const Board::PartList& list) {
 }
 
 void CreateHomerInstruction(const Board &board) {
+    printf("bedlevel:BedLevel-Z\tTouch needle on bed next to board\n");
     ComponentCount components;
     ExtractComponents(board.parts(), &components);
     for (const auto &pair : components) {
@@ -218,7 +219,7 @@ int main(int argc, char *argv[]) {
     Printer *printer = NULL;
     switch (output_type) {
     case OUT_DISPENSING:
-        printer = new GCodeDispensePrinter(start_ms, area_ms);
+        printer = new GCodeDispensePrinter(config, start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
         printer = new PostScriptPrinter(config);

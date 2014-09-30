@@ -30,7 +30,7 @@ class GCodeDispensePrinter : public Printer {
 public:
     // "init_ms" number of milliseconds to switch on the dispenser, then
     // "area_ms" is milliseconds per mm^2
-    GCodeDispensePrinter(float init_ms, float area_ms);
+    GCodeDispensePrinter(const PnPConfig *config, float init_ms, float area_ms);
 
     void Init(const std::string &init_comment,
               const Dimension& dimension) override;
@@ -38,6 +38,7 @@ public:
     void Finish() override;
 
 private:
+    const PnPConfig *const config_;
     const float init_ms_;
     const float area_ms_;
 };
@@ -51,7 +52,7 @@ public:
     void Finish() override;
 
 private:
-    const PnPConfig* config_;
+    const PnPConfig *config_;
 };
 
 #endif  // PRINTER_H

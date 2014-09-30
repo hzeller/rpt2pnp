@@ -29,6 +29,7 @@ public:
     bool Advance();
 
     void DebugPrint() const;  // print to stderr.
+    float height() const { return z_; }
 
 private:
     float x_, y_, z_;
