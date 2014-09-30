@@ -244,7 +244,11 @@ int main(int argc, char *argv[]) {
     printer->Init(all_args, board.dimension());
 
     // Feed all the parts to the printer.
-    for (const Part* part : board.parts()) {
+    Board::PartList part_list(board.parts());
+    if (output_type == OUT_DISPENSING) {
+        OptimizeParts(&part_list);
+    }
+    for (const Part* part : part_list) {
         printer->PrintPart(*part);
     }
 
