@@ -25,12 +25,14 @@
 // Multiplication to get 360 degrees mapped to one turn.
 #define ANGLE_FACTOR (50.34965 / 360)
 
-const char *const gcode_preamble = R"(
+// TODO: move needle out of way should come from highest point seen in
+// tape or board + something.
+static const char *const gcode_preamble = R"(
 ; Preamble. Fill with whatever is necessary to init.
 ; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
 ; 0..360 correspond to absolute degrees.
 ; (correction: for now, we mess with an E-axis instead of A)
-G28 X0 Y0  ; Now home (x/y) - needle over free space
+G28 X0 Y0  ; Home (x/y) - needle over free space
 G28 Z0     ; Now it is safe to home z
 G21        ; set to mm
 T1         ; Use E1 extruder, our 'A' axis.
@@ -42,7 +44,7 @@ G1 Z35 E0 F2500 ; Move needle out of way
 )";
 
 // param: name, x, y, zup, zdown, a, zup
-const char *const pick_gcode = R"(
+static const char *const pick_gcode = R"(
 ; Pick %s
 G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
 G1 Z%.3f   ; move down
@@ -52,7 +54,7 @@ G1 Z%.3f  ; Move up a bit for travelling
 )";
 
 // param: name, x, y, zup, a, zdown, zup
-const char *const place_gcode = R"(
+static const char *const place_gcode = R"(
 ; Place %s
 G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to place.
 G1 Z%.3f    ; move down.

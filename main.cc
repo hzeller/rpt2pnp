@@ -36,15 +36,7 @@ static int usage(const char *prog) {
             "\t-C <config> : Use homer config created via homer from -h\n"
             "\t-p      : Pick'n place. Requires a config and rpt.\n"
             "\t-P      : Output as PostScript.\n"
-#if 0
-            // dry run gcode.
-            // not working right now.
-            "\t-d <ms> : Dispensing soler paste. Init time ms (default %.1f)\n"
-            "\t-D <ms> : Dispensing time ms/mm^2 (default %.1f)\n",
-
-            prog, minimum_milliseconds, area_to_milliseconds
-#endif
-            ,prog);
+            "\t-d      : Dispensing solder paste.\n", prog);
     return 1;
 }
 
@@ -156,7 +148,7 @@ int main(int argc, char *argv[]) {
     const char *simple_config_filename = NULL;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:tlhpd:D:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:tlhpd")) != -1) {
         switch (opt) {
         case 'P':
             output_type = OUT_POSTSCRIPT;
@@ -181,11 +173,6 @@ int main(int argc, char *argv[]) {
             break;
         case 'd':
             output_type = OUT_DISPENSING;
-            start_ms = atof(optarg);
-            break;
-        case 'D':
-            output_type = OUT_DISPENSING;
-            area_ms = atof(optarg);
             break;
         default: /* '?' */
             return usage(argv[0]);

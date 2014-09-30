@@ -4,11 +4,41 @@
 
 #include "printer.h"
 
-#define Z_DISPENSING "1.7"        // Position to dispense stuff. Just above board.
-#define Z_HOVER_DISPENSER "2.5"   // Hovering above position.
-#define Z_HIGH_UP_DISPENSER "5"   // high up to separate paste.
+#include <math.h>
 
-#include "printer.h"
+#define Z_BOARD_HIGH 30.0   // arbitrary; TODO: take from board definition.
+
+// These might need tweaking
+#define Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
+#define Z_HOVER_ABOVE 2             // Above board when moving around
+#define Z_SEPARATE_DROPLET_ABOVE 5  // Above board right after dispensing.
+
+// One parameter: initial height.
+static const char *const gcode_preamble = R"(
+G28 X0 Y0  ; Home (x/y) - needle over free space
+G28 Z0     ; Now it is safe to home z
+G21        ; set to mm
+G90        ; Use absolute positions.
+G0 F20000  ; fast moving...
+G1 F4000   ; slower dispense moves.
+G0 Z%.1f   ; Move needle out of way.
+)";
+
+// move to new position, above board.
+// param: component-name, pad-name, x, y, hover-z
+static const char *const gcode_move_pos = R"(
+;; component %s, pad %s
+G0 X%.3f Y%.3f Z%.3f   ; move there.)";
+
+// Dispense paste.
+// param: z-dispense-height, wait-time-ms, area, z-separate-droplet
+static const char *const gcode_dispense = R"(
+G1 Z%.2f ; Go down to dispense
+M106      ; switch on fan (=solenoid)
+G4 P%.1f  ; Wait time dependent on area %.2f mm^2
+M107      ; switch off solenoid
+G1 Z%.2f ; high above to have paste separated
+)";
 
 // Printer for dispensing pads (not really working right now)
 GCodeDispensePrinter::GCodeDispensePrinter(float init_ms, float area_ms)
@@ -19,21 +49,25 @@ void GCodeDispensePrinter::Init(const std::string &init_comment,
     printf("; %s\n", init_comment.c_str());
     printf("; init-ms=%.1f area-ms=%.1f\n", init_ms_, area_ms_);
     // G-code preamble. Set feed rate, homing etc.
-    printf(
-           "G28\n"
-           "G21\n" // set to mm
-           "G0 F20000\n"
-           "G1 F4000\n"
-           "G0 Z" Z_HIGH_UP_DISPENSER "\n"
-           );
+    printf(gcode_preamble, Z_BOARD_HIGH + 10);
 }
 
 void GCodeDispensePrinter::PrintPart(const Part &part) {
-    // move to new position, above board
-    printf("G0 X%.3f Y%.3f E%.3f Z" Z_HOVER_DISPENSER " ; comp=%s val=%s\n",
-           // "G1 Z" Z_HIGH_UP_DISPENSER "\n", // high above to have paste is well separated
-           part.pos.x, part.pos.y, part.angle,
-           part.component_name.c_str(), part.value.c_str());
+    const float angle = 2 * M_PI * part.angle / 360.0;
+    for (const Pad &pad : part.pads) {
+        const float area = pad.size.w * pad.size.h;
+        const float pad_x = pad.pos.x + pad.size.w/2;
+        const float pad_y = pad.pos.y + pad.size.h/2;
+        const float x = part.pos.x + pad_x * cos(angle) - pad_y * sin(angle);
+        const float y = part.pos.y + pad_x * sin(angle) + pad_y * cos(angle);
+        printf(gcode_move_pos,
+               part.component_name.c_str(), pad.name.c_str(),
+               x, y, Z_BOARD_HIGH + Z_HOVER_ABOVE);
+        printf(gcode_dispense,
+               Z_BOARD_HIGH + Z_DISPENSING_ABOVE,
+               init_ms_ + area * area_ms_, area,
+               Z_BOARD_HIGH + Z_SEPARATE_DROPLET_ABOVE);
+    }
 }
 
 void GCodeDispensePrinter::Finish() {

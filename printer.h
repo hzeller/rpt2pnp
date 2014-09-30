@@ -26,7 +26,6 @@ public:
 
 //-- Some implementations of a printer. For lazyness reasons all in this header
 
-// (this might temporarily not work properly while working on PnP)
 class GCodeDispensePrinter : public Printer {
 public:
     // "init_ms" number of milliseconds to switch on the dispenser, then
