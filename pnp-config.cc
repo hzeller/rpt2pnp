@@ -194,7 +194,9 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
     }
     if (lowest_value < result->bed_level) {
         fprintf(stderr, "Mmh, looks like there are things _below_ bed-level?\n"
-                "I'd consider this an error ...\n");
+                "I'd consider this an error ... "
+                "(bed-level=%.1f, lowest point=%.1f\n",
+                result->bed_level, lowest_value);
         return NULL;
     }
     return result.release();
