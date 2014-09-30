@@ -14,7 +14,8 @@ PostScriptPrinter::PostScriptPrinter(const PnPConfig *pnp_config)
     }
 }
 
-void PostScriptPrinter::Init(const Dimension& board_dim) {
+void PostScriptPrinter::Init(const std::string &init_comment,
+                             const Dimension& board_dim) {
     const float mm_to_point = 1 / 25.4 * 72.0;
     if (config_->tape_for_component.size() == 0) {
         printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
@@ -26,6 +27,7 @@ void PostScriptPrinter::Init(const Dimension& board_dim) {
                -2 * mm_to_point, -2 * mm_to_point,
                300 * mm_to_point, 300 * mm_to_point);
     }
+    printf("%% %s\n", init_comment.c_str());
     printf("%s", R"(
 % <dx> <dy> <x0> <y0>
 /rect {

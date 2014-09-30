@@ -248,7 +248,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printer->Init(board.dimension());
+    std::string all_args;
+    for (int i = 0; i < argc; ++i) {
+        all_args.append(argv[i]).append(" ");
+    }
+    printer->Init(all_args, board.dimension());
 
     // Feed all the parts to the printer.
     for (const Part* part : board.parts()) {

@@ -14,7 +14,8 @@ public:
     PostScriptPrinter(const PnPConfig *config);
 
     ~PostScriptPrinter() override {}
-    void Init(const Dimension& board_dim) override;
+    void Init(const std::string &init_comment,
+              const Dimension& board_dim) override;
     void PrintPart(const Part &part) override;
     void Finish() override;
     

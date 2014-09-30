@@ -26,7 +26,7 @@
 #define ANGLE_FACTOR (50.34965 / 360)
 
 const char *const gcode_preamble = R"(
-; Preamble. Fill be whatever is necessary to init.
+; Preamble. Fill with whatever is necessary to init.
 ; Assumes an 'A' axis that rotates the pick'n place nozzle. The values
 ; 0..360 correspond to absolute degrees.
 ; (correction: for now, we mess with an E-axis instead of A)
@@ -78,7 +78,9 @@ GCodePickNPlace::GCodePickNPlace(const PnPConfig *config) : config_(config) {
 #endif
 }
 
-void GCodePickNPlace::Init(const Dimension& dim) {
+void GCodePickNPlace::Init(const std::string &init_comment,
+                           const Dimension& dim) {
+    printf("; %s\n", init_comment.c_str());
     printf("%s", gcode_preamble);
 }
 

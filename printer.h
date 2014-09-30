@@ -5,6 +5,8 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
+#include <string>
+
 #include "rpt2pnp.h"
 #include "board.h"
 #include "corner-part-collector.h"
@@ -14,7 +16,10 @@ struct PnPConfig;
 class Printer {
 public:
     virtual ~Printer() {}
-    virtual void Init(const Dimension& dimension) = 0;
+    // Initialize printer. The comment should be added to the output file
+    // if possible.
+    virtual void Init(const std::string &init_comment,
+                      const Dimension& dimension) = 0;
     virtual void PrintPart(const Part &part) = 0;
     virtual void Finish() = 0;
 };
@@ -28,7 +33,8 @@ public:
     // "area_ms" is milliseconds per mm^2
     GCodeDispensePrinter(float init_ms, float area_ms);
 
-    void Init(const Dimension& dimension) override;
+    void Init(const std::string &init_comment,
+              const Dimension& dimension) override;
     void PrintPart(const Part &part) override;
     void Finish() override;
 
@@ -41,7 +47,7 @@ class GCodePickNPlace : public Printer {
 public:
     GCodePickNPlace(const PnPConfig *pnp_config);
 
-    void Init(const Dimension& dim) override;
+    void Init(const std::string &init_comemnt, const Dimension& dim) override;
     void PrintPart(const Part& part) override;
     void Finish() override;
 

@@ -14,13 +14,13 @@
 GCodeDispensePrinter::GCodeDispensePrinter(float init_ms, float area_ms)
     : init_ms_(init_ms), area_ms_(area_ms) {}
 
-void GCodeDispensePrinter::Init(const Dimension& dim) {
-    //OptimizeParts(&parts);
-
-    printf("; rpt2pnp -d %.2f -D %.2f file.rpt\n", init_ms_, area_ms_);
+void GCodeDispensePrinter::Init(const std::string &init_comment,
+                                const Dimension& dim) {
+    printf("; %s\n", init_comment.c_str());
+    printf("; init-ms=%.1f area-ms=%.1f\n", init_ms_, area_ms_);
     // G-code preamble. Set feed rate, homing etc.
     printf(
-           //    "G28\n" assume machine is already homed before g-code is executed
+           "G28\n"
            "G21\n" // set to mm
            "G0 F20000\n"
            "G1 F4000\n"
