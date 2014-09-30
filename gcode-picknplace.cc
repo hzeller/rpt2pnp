@@ -29,7 +29,7 @@
 
 // Speeds in mm/s
 #define TO_TAPE_SPEED 1000  // moving needle to tape
-#define TO_BOARD_SPEED 300  // moving component from tape to board
+#define TO_BOARD_SPEED 100  // moving component from tape to board
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
