@@ -73,12 +73,13 @@ G1 Z%-6.2f    ; Move up
 )";
 
 static const char *const gcode_finish = R"(
-M84   ; stop motors
+G28 X0 Y0  ; Home x/y, but leave z clear
+M84        ; stop motors
 )";
 
 GCodePickNPlace::GCodePickNPlace(const PnPConfig *config) : config_(config) {
     if (config_ == NULL) {
-        fprintf(stderr, "Need configuration for pick'n placing.");
+        fprintf(stderr, "Need configuration for pick'n placing.\n");
         exit(1);
     }
     fprintf(stderr, "Board-thickness = %.1fmm\n",

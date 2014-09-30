@@ -41,7 +41,8 @@ G1 Z%.2f ; high above to have paste separated
 )";
 
 static const char *const gcode_finish = R"(
-M84   ; stop motors
+G28 X0 Y0 ; Home x/y, but leave z clear
+M84       ; stop motors
 )";
 
 // Printer for dispensing pads (not really working right now)
@@ -49,7 +50,7 @@ GCodeDispensePrinter::GCodeDispensePrinter(const PnPConfig *config,
                                            float init_ms, float area_ms)
     : config_(config), init_ms_(init_ms), area_ms_(area_ms) {
     if (config_ == NULL) {
-        fprintf(stderr, "Need configuration for dispensing.");
+        fprintf(stderr, "Need configuration for dispensing.\n");
         exit(1);
     }
 }
