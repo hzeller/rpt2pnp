@@ -12,6 +12,7 @@
 #include "pnp-config.h"
 
 // Hovering while transporting a component.
+// TODO: calculate that to not knock over already placed components.
 #define Z_HOVERING 10
 
 // Components are a bit higher as they are resting on some card-board. Let's
@@ -40,13 +41,16 @@ M302       ; cold extrusion override - because it is not actually an extruder.
 G90        ; Use absolute positions in general.
 G92 E0     ; 'home' E axis
 
-G1 Z%.1f E0 F2500 ; Move needle out of way
+G0 F60000  ; Move speed between tape and position.
+G1 F4000   ; slower placing (Z-axis movements)
+
+G1 Z%.1f E0 ; Move needle out of way
 )";
 
 // param: name, x, y, zup, zdown, a, zup
 static const char *const pick_gcode = R"(
 ;; -- Pick %s
-G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
+G0 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
 G1 Z%-6.2f   ; move down on tape.
 G4           ; flush buffer
 M42 P6 S255  ; turn on suckage
@@ -56,7 +60,7 @@ G1 Z%-6.3f   ; Move up a bit for travelling
 // param: name, x, y, zup, a, zdown, zup
 static const char *const place_gcode = R"(
 ;; -- Place %s
-G1 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to place.
+G0 X%.3f Y%.3f Z%.3f E%.3f ; Move over component to place.
 G1 Z%-6.3f    ; move down over board thickness.
 G4            ; flush buffer.
 M42 P6 S0     ; turn off suckage
