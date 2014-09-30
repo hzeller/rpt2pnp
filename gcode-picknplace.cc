@@ -32,6 +32,7 @@ const char *const gcode_preamble = R"(
 ; (correction: for now, we mess with an E-axis instead of A)
 G28 X0 Y0  ; Now home (x/y) - needle over free space
 G28 Z0     ; Now it is safe to home z
+G21        ; set to mm
 T1         ; Use E1 extruder, our 'A' axis.
 M302       ; cold extrusion override - because it is not actually an extruder.
 G92 E0     ; 'home' E axis

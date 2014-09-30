@@ -37,20 +37,6 @@ private:
     const float area_ms_;
 };
 
-class GCodeCornerIndicator : public Printer {
-public:
-    GCodeCornerIndicator(float init_ms, float area_ms);
-
-    void Init(const Dimension& dim) override;
-    void PrintPart(const Part &part) override;
-    void Finish() override;
-
-private:
-    CornerPartCollector corners_;
-    const float init_ms_;
-    const float area_ms_;
-};
-
 class GCodePickNPlace : public Printer {
 public:
     GCodePickNPlace(const PnPConfig *pnp_config);

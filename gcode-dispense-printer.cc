@@ -39,37 +39,3 @@ void GCodeDispensePrinter::PrintPart(const Part &part) {
 void GCodeDispensePrinter::Finish() {
     printf(";done\n");
 }
-
-
-// Corner indicator.
-GCodeCornerIndicator::GCodeCornerIndicator(float init_ms, float area_ms)
-    : init_ms_(init_ms), area_ms_(area_ms) {}
-
-void GCodeCornerIndicator::Init(const Dimension& dim) {
-    corners_.SetCorners(0, 0, dim.w, dim.h);
-    // G-code preamble. Set feed rate, homing etc.
-    printf(
-           //    "G28\n" assume machine is already homed before g-code is executed
-           "G21\n" // set to mm
-           "G1 F2000\n"
-           "G0 Z4\n" // X0 Y0 may be outside the reachable area, and no need to go there
-           );
-}
-
-void GCodeCornerIndicator::PrintPart(const Part &part) {
-    corners_.Update(part.pos, part);
-}
-
-void GCodeCornerIndicator::Finish() {
-    for (int i = 0; i < 4; ++i) {
-        const ::Part &p = corners_.get_part(i);
-        const Position pos = corners_.get_closest(i);
-        printf("G0 X%.3f Y%.3f Z" Z_DISPENSING " ; comp=%s\n"
-               "G4 P2000 ; wtf\n"
-               "G0 Z" Z_HIGH_UP_DISPENSER "\n",
-               pos.x, pos.y, p.component_name.c_str()
-               );
-
-    }
-    printf(";done\n");
-}

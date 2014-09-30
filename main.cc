@@ -143,7 +143,6 @@ int main(int argc, char *argv[]) {
     enum OutputType {
         OUT_NONE,
         OUT_DISPENSING,
-        OUT_CORNER_GCODE,
         OUT_POSTSCRIPT,
         OUT_CONFIG_TEMPLATE,
         OUT_CONFIG_LIST,
@@ -233,9 +232,6 @@ int main(int argc, char *argv[]) {
     switch (output_type) {
     case OUT_DISPENSING:
         printer = new GCodeDispensePrinter(start_ms, area_ms);
-        break;
-    case OUT_CORNER_GCODE:
-        printer = new GCodeCornerIndicator(start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
         printer = new PostScriptPrinter(config);
