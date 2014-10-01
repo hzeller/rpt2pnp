@@ -16,7 +16,7 @@ class Board;
 // TODO:
 //  - reference position on board
 //  - multiple boards
-//  - board height.
+//  - different board-height for dispense-needle and pick'n place
 struct PnPConfig {
     typedef std::map<std::string, Tape*> PartToTape;
     struct BoardConfig {

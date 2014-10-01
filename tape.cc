@@ -31,14 +31,13 @@ void Tape::SetNumberComponents(int n) {
     count_ = n;
 }
 
-bool Tape::GetPos(float *x, float *y, float *z) {
-    assert(x != NULL && y != NULL && z != NULL);
+bool Tape::GetPos(float *x, float *y) const {
+    assert(x != NULL && y != NULL);
     if (count_ <= 0)
         return false;
 
     *x = x_;
     *y = y_;
-    *z = z_;
     return true;
 }
 

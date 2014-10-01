@@ -1,7 +1,7 @@
 CXXFLAGS=-Wall -std=c++11
 
-OBJECTS=main.o rpt-parser.o optimizer.o postscript-printer.o tape.o board.o \
-	gcode-dispense-printer.o gcode-picknplace.o pnp-config.o
+OBJECTS=main.o rpt-parser.o optimizer.o tape.o board.o \
+        pnp-config.o gcode-machine.o postscript-machine.o
 
 rpt2pnp: $(OBJECTS)
 	g++ $(CXXFLAGS) -o $@ $^

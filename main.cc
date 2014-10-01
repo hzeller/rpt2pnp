@@ -14,9 +14,9 @@
 #include <map>
 
 #include "board.h"
+#include "tape.h"
 #include "pnp-config.h"
-#include "postscript-printer.h"
-#include "printer.h"
+#include "machine.h"
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
 
@@ -133,27 +133,57 @@ void CreateHomerInstruction(const Board &board) {
     }
 }
 
+void SolderDispense(const Board &board, Machine *machine) {
+    Board::PartList part_list(board.parts());
+    OptimizeParts(&part_list);
+    // TODO: optimize pad sequence
+    for (const Part *part : part_list) {
+        for (const Pad &pad : part->pads) {
+            machine->Dispense(*part, pad);
+        }
+    }
+}
+
+void PickNPlace(const PnPConfig *config, const Board &board, Machine *machine) {
+    // TODO: lowest height components first to not knock over bigger ones.
+    for (const Part *part : board.parts()) {
+        Tape *tape = NULL;
+        if (config) {
+            const std::string key = part->footprint + "@" + part->value;
+            auto found = config->tape_for_component.find(key);
+            if (found == config->tape_for_component.end()) {
+                fprintf(stderr, "No tape for '%s'\n", key.c_str());
+            } else {
+                tape = found->second;
+            }
+        }
+        machine->PickPart(*part, tape);
+        machine->PlacePart(*part, tape);
+        if (tape) tape->Advance();
+    }
+}
+
 int main(int argc, char *argv[]) {
     enum OutputType {
         OUT_NONE,
         OUT_DISPENSING,
-        OUT_POSTSCRIPT,
+        OUT_PICKNPLACE,
         OUT_CONFIG_TEMPLATE,
         OUT_CONFIG_LIST,
         OUT_HOMER_INSTRUCTION,
-        OUT_PICKNPLACE,
     } output_type = OUT_NONE;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
     const char *config_filename = NULL;
     const char *simple_config_filename = NULL;
+    bool out_postscript = false;
 
     int opt;
     while ((opt = getopt(argc, argv, "Pc:C:tlhpd")) != -1) {
         switch (opt) {
         case 'P':
-            output_type = OUT_POSTSCRIPT;
+            out_postscript = true;
             break;
         case 'c':
             config_filename = strdup(optarg);
@@ -191,11 +221,6 @@ int main(int argc, char *argv[]) {
     if (!board.ReadPartsFromRpt(rpt_file))
         return 1;
 
-    if (output_type == OUT_NONE
-        && (config_filename != NULL || simple_config_filename != NULL)) {
-        output_type = OUT_PICKNPLACE;
-    }
-
     if (output_type == OUT_CONFIG_TEMPLATE) {
         CreateConfigTemplate(board.parts());
         return 0;
@@ -217,43 +242,26 @@ int main(int argc, char *argv[]) {
         config = ParseSimplePnPConfiguration(board, simple_config_filename);
     }
 
-    Printer *printer = NULL;
-    switch (output_type) {
-    case OUT_DISPENSING:
-        printer = new GCodeDispensePrinter(config, start_ms, area_ms);
-        break;
-    case OUT_POSTSCRIPT:
-        printer = new PostScriptPrinter(config);
-        break;
-    case OUT_PICKNPLACE:
-        printer = new GCodePickNPlace(config);
-        break;
-    default:
-        break;
-    }
-
-    if (printer == NULL) {
-        usage(argv[0]);
-        return 1;
-    }
+    Machine *machine = out_postscript
+        ? (Machine*) new PostScriptMachine()
+        : (Machine*) new GCodeMachine(start_ms, area_ms);
 
     std::string all_args;
     for (int i = 0; i < argc; ++i) {
         all_args.append(argv[i]).append(" ");
     }
-    printer->Init(all_args, board.dimension());
+    machine->Init(config, all_args, board.dimension());
 
-    // Feed all the parts to the printer.
-    Board::PartList part_list(board.parts());
     if (output_type == OUT_DISPENSING) {
-        OptimizeParts(&part_list);
-    }
-    for (const Part* part : part_list) {
-        printer->PrintPart(*part);
+        SolderDispense(board, machine);
+    } else if (output_type == OUT_PICKNPLACE) {
+        PickNPlace(config, board, machine);
+    } else {
+        fprintf(stderr, "Please choose operation with -d or -p\n");
     }
 
-    printer->Finish();
+    machine->Finish();
 
-    delete printer;
+    delete machine;
     return 0;
 }

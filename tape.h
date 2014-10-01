@@ -22,8 +22,8 @@ public:
     float angle() const { return angle_ + slant_angle_; }
 
     // Get next component position. Returns 'true' if there is any, 'false'
-    // if we exhausted our components.
-    bool GetPos(float *x, float *y, float *z);
+    // if we exhausted our components. Does not advance tape.
+    bool GetPos(float *x, float *y) const;
 
     // Advances on the tape, so each call yields a different position
     bool Advance();

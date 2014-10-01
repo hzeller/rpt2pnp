@@ -156,8 +156,8 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
                 if (found != result->tape_for_component.end()) {
                     Tape *t = found->second;
                     const int advance = tape_idx - 1;
-                    float old_x, old_y, old_z;
-                    t->GetPos(&old_x, &old_y, &old_z);
+                    float old_x, old_y;
+                    t->GetPos(&old_x, &old_y);
                     const float dx = (x - old_x) / advance;
                     const float dy = (y - old_y) / advance;
                     found->second->SetComponentSpacing(dx, dy);
