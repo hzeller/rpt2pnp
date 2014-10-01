@@ -27,8 +27,11 @@
 #define ANGLE_FACTOR (50.34965 / 360)
 
 // Speeds in mm/s
-#define TO_TAPE_SPEED 1000  // moving needle to tape
-#define TO_BOARD_SPEED 100  // moving component from tape to board
+#define PNP_TO_TAPE_SPEED 1000  // moving needle to tape
+#define PNP_TO_BOARD_SPEED 100  // moving component from tape to board
+
+#define DISP_MOVE_SPEED 1000
+#define DISP_DROP_SEPARATE_SPEED 100
 
 #define Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
 #define Z_HOVER_ABOVE 2             // Above board when moving around
@@ -78,12 +81,12 @@ G1 Z%-6.2f    ; Move up
 // param: component-name, pad-name, x, y, hover-z
 static const char *const gcode_dispense_move = R"(
 ;; -- component %s, pad %s
-G0 X%.3f Y%.3f Z%.3f   ; move there.)";
+G0 F%d X%.3f Y%.3f Z%.3f ; move there.)";
 
 // Dispense paste.
 // param: z-dispense-height, wait-time-ms, area, z-separate-droplet
 static const char *const gcode_dispense_paste = R"(
-G1 Z%.2f ; Go down to dispense
+G1 F%d Z%.2f ; Go down to dispense
 M106      ; switch on fan (=solenoid)
 G4 P%-5.1f ; Wait time dependent on area %.2f mm^2
 M107      ; switch off solenoid
@@ -134,7 +137,7 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
     // param: name, x, y, zdown, a, zup
     printf(gcode_pick,
            print_name.c_str(),
-           60 * TO_TAPE_SPEED,
+           60 * PNP_TO_TAPE_SPEED,
            px, py, tape->height() + Z_HOVERING,         // component pos.
            ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
            tape->height(),                              // down to component
@@ -151,7 +154,7 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
     // param: name, x, y, zup, a, zdown, zup
     printf(gcode_place,
            print_name.c_str(),
-           60 * TO_BOARD_SPEED,
+           60 * PNP_TO_BOARD_SPEED,
            part.pos.x + config_->board.origin.x,
            part.pos.y + config_->board.origin.y,
            travel_height,
@@ -172,8 +175,9 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
      const float y = part_y + pad_x * sin(angle) + pad_y * cos(angle);
      printf(gcode_dispense_move,
             part.component_name.c_str(), pad.name.c_str(),
+            DISP_MOVE_SPEED * 60,
             x, y, config_->board.top + Z_HOVER_ABOVE);
-     printf(gcode_dispense_paste,
+     printf(gcode_dispense_paste, DISP_DROP_SEPARATE_SPEED * 60,
             config_->board.top + Z_DISPENSING_ABOVE,
             init_ms_ + area * area_ms_, area,
             config_->board.top + Z_SEPARATE_DROPLET_ABOVE);
