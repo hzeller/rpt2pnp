@@ -33,9 +33,9 @@ static Position ExtractPosition(const std::pair<const Part *, const Pad *> &p) {
     return Position(x, y);
 }
 
-static int FindSmallestDistance(const OptimizeList parts,
-                                size_t range_start,
-                                const Position &reference_pos) {
+static int FindSmallestDistanceIndex(const OptimizeList &parts,
+                                     size_t range_start,
+                                     const Position &reference_pos) {
     float smallest_distance;
     int best = -1;
     for (size_t j = range_start; j < parts.size(); ++j) {
@@ -51,9 +51,14 @@ static int FindSmallestDistance(const OptimizeList parts,
 // Very crude, O(n^2) optimization looking for nearest neighbor.
 // Not TSP solution, but better than random
 void OptimizeParts(OptimizeList *list) {
+    int left_botton_corner = FindSmallestDistanceIndex(*list, 0, Position(0,0));
+    if (left_botton_corner < 0)
+        return;  // empty board.
+    Swap(list, 0, left_botton_corner);  // Make that our first component.
     for (size_t i = 0; i < list->size() - 1; ++i) {
-        Swap(list, i + 1,
-             FindSmallestDistance(*list, i + 1, ExtractPosition((*list)[i])));
+        Swap(list,
+             i + 1, FindSmallestDistanceIndex(*list, i + 1,
+                                              ExtractPosition((*list)[i])));
     }
 }
 
