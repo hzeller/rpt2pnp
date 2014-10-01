@@ -13,29 +13,32 @@
 
 #include "pnp-config.h"
 
+// TODO: most of these constants should be configurable or deduced from board/
+// configuration.
+
 // Hovering while transporting a component.
 // TODO: calculate that to not knock over already placed components.
-#define Z_HOVERING 10
+#define PNP_Z_HOVERING 10
 
 // Components are a bit higher as they are resting on some card-board. Let's
 // assume some value here.
 // Ultimately, we want the placement operation be a bit spring-loaded.
-#define TAPE_THICK 0.0
+#define PNP_TAPE_THICK 0.0
 
 // Multiplication to get 360 degrees mapped to one turn. This is specific to
-// our stepper motor. TODO: make configurable
-#define ANGLE_FACTOR (50.34965 / 360)
+// our stepper motor.
+#define PNP_ANGLE_FACTOR (50.34965 / 360)
 
 // Speeds in mm/s
-#define PNP_TO_TAPE_SPEED 1000  // moving needle to tape
-#define PNP_TO_BOARD_SPEED 100  // moving component from tape to board
+#define PNP_TO_TAPE_SPEED 1000      // moving needle to tape
+#define PNP_TO_BOARD_SPEED 100      // moving component from tape to board
 
-#define DISP_MOVE_SPEED 1000
-#define DISP_DROP_SEPARATE_SPEED 100
+#define DISP_MOVE_SPEED 1000         // move dispensing unit to next pad
+#define DISP_DISPENSE_SPEED 100      // speed when doing the dispensing down/up
 
-#define Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
-#define Z_HOVER_ABOVE 2             // Above board when moving around
-#define Z_SEPARATE_DROPLET_ABOVE 5  // Above board right after dispensing.
+#define DISP_Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
+#define DISP_Z_HOVER_ABOVE 2             // Above board when moving around
+#define DISP_Z_SEPARATE_DROPLET_ABOVE 5  // Above board right after dispensing.
 
 // All templates should be in a separate file somewhere so that we don't
 // have to compile.
@@ -130,7 +133,7 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
     }
 
     const float board_thick = config_->board.top - config_->bed_level;
-    const float travel_height = tape->height() + board_thick + Z_HOVERING;
+    const float travel_height = tape->height() + board_thick + PNP_Z_HOVERING;
     const std::string print_name = part.component_name + " ("
         + part.footprint + "@" + part.value + ")";
 
@@ -138,8 +141,8 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
     printf(gcode_pick,
            print_name.c_str(),
            60 * PNP_TO_TAPE_SPEED,
-           px, py, tape->height() + Z_HOVERING,         // component pos.
-           ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
+           px, py, tape->height() + PNP_Z_HOVERING,     // component pos.
+           PNP_ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
            tape->height(),                              // down to component
            travel_height);                              // up for travel.
 }
@@ -147,7 +150,7 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
 void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
     if (tape == NULL) return;
     const float board_thick = config_->board.top - config_->bed_level;
-    const float travel_height = tape->height() + board_thick + Z_HOVERING;
+    const float travel_height = tape->height() + board_thick + PNP_Z_HOVERING;
     const std::string print_name = part.component_name + " ("
         + part.footprint + "@" + part.value + ")";
 
@@ -158,8 +161,8 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
            part.pos.x + config_->board.origin.x,
            part.pos.y + config_->board.origin.y,
            travel_height,
-           ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
-           tape->height() + board_thick - TAPE_THICK,
+           PNP_ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
+           tape->height() + board_thick - PNP_TAPE_THICK,
            travel_height);
 }
 
@@ -176,11 +179,11 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
      printf(gcode_dispense_move,
             part.component_name.c_str(), pad.name.c_str(),
             DISP_MOVE_SPEED * 60,
-            x, y, config_->board.top + Z_HOVER_ABOVE);
-     printf(gcode_dispense_paste, DISP_DROP_SEPARATE_SPEED * 60,
-            config_->board.top + Z_DISPENSING_ABOVE,
+            x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
+     printf(gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
+            config_->board.top + DISP_Z_DISPENSING_ABOVE,
             init_ms_ + area * area_ms_, area,
-            config_->board.top + Z_SEPARATE_DROPLET_ABOVE);
+            config_->board.top + DISP_Z_SEPARATE_DROPLET_ABOVE);
 }
 
 void GCodeMachine::Finish() {
