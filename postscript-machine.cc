@@ -10,6 +10,55 @@
 #include "tape.h"
 #include "board.h"
 
+#define DISPENSE_PART_COLOR "0.8 0.8 0.8"
+#define PICK_COLOR          "0 0 0"
+#define PLACE_COLOR         "0 0 0"
+#define PLACE_MISSING_PART  "1 0.3 0"
+
+static const char ps_preamble[] = R"(
+% <dx> <dy> <x0> <y0>
+/rect {
+  moveto
+  1 index 0 rlineto
+  0 exch rlineto
+  neg 0 rlineto
+  closepath
+  stroke
+} def
+
+% print component
+% <dy> <dx>  <x0> <y0> <r> <g> <b> <name> <angle> <x> <y> pp
+/pc {
+    gsave
+    translate              % takes <x> <y>
+    rotate                 % takes <angle>
+    0 0 moveto
+    0 0 0.1 0 360 arc      % mark center with tiny dot.
+    0 0 1 setrgbcolor show % takes <name>
+    setrgbcolor            % takes <r><g><b>
+    rect                   % take <dy> <dx> <x0> <y0>
+    grestore
+} def
+
+% PastePad.
+% Stack: <diameter>
+/pp { 0.2 setlinewidth 0 360 arc stroke } def
+
+% Move, show path.
+% Stack: <x> <y>
+/m {
+  0 0.5 0 setrgbcolor
+  0 setlinewidth lineto
+  currentpoint        % leave the new point on the stack
+  stroke
+  0 0 0 setrgbcolor
+} def
+
+72.0 25.4 div dup scale                  % Switch to mm
+0.1 setlinewidth
+/Helvetica findfont 1.5 scalefont setfont  % Small font
+)";
+
 bool PostScriptMachine::Init(const PnPConfig *config,
                              const std::string &init_comment,
                              const Dimension& board_dim) {
@@ -17,6 +66,7 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     if (config_ == NULL) {
         config_ = new PnPConfig();
     }
+    dispense_parts_printed_.clear();
     const float mm_to_point = 1 / 25.4 * 72.0;
     if (config_->tape_for_component.size() == 0) {
         printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
@@ -29,47 +79,13 @@ bool PostScriptMachine::Init(const PnPConfig *config,
                300 * mm_to_point, 300 * mm_to_point);
     }
     printf("%% %s\n", init_comment.c_str());
-    printf("%s", R"(
-% <dx> <dy> <x0> <y0>
-/rect {
-  moveto
-  1 index 0 rlineto
-  0 exch rlineto
-  neg 0 rlineto
-  closepath
-  stroke
-} def
+    printf("%s", ps_preamble);
 
-% print component
-% <dy> <dx>  <x0> <y0>  <value> <name>  <angle> <x> <y> pp
-/pc {
-    gsave
-    translate
-    rotate
-    0 0 moveto
-    0 0 0.1 0 360 arc  % mark center
-    0 0 1 setrgbcolor show % name
-    0 0 0 setrgbcolor ( / ) show
-    1 0 0 setrgbcolor show % value
-    0 0 0 setrgbcolor
-    rect
-    grestore
-} def
-
-% PastePad.
-% Stack: <diameter>
-/pp { 0.2 setlinewidth 0 360 arc stroke } def
-
-% Move, show trace.
-% Stack: <x> <y>
-/m { 0.01 setlinewidth lineto currentpoint stroke } def
-)");
-    printf("72.0 25.4 div dup scale  %% Switch to mm\n");
-    printf("0.1 setlinewidth\n");
-    printf("/Helvetica findfont 1 scalefont setfont\n");
-    printf("%.1f %.1f moveto\n", 0.0, 0.0);
+    // Draw board
     printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
            config_->board.origin.x, config_->board.origin.y);
+
+    // Push a currentpoint on stack (dispense draws a line from here)
     printf("0 0 moveto\n");
     return true;
 }
@@ -79,23 +95,29 @@ void PostScriptMachine::PickPart(const Part &part, const Tape *tape) {
     float tx, ty;
     if (tape->GetPos(&tx, &ty)) {
         // Print component on tape
-        printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pc\n",
+        printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
                part.bounding_box.p1.x - part.bounding_box.p0.x,
                part.bounding_box.p1.y - part.bounding_box.p0.y,
                part.bounding_box.p0.x, part.bounding_box.p0.y,
-               "", part.component_name.c_str(),
+               PICK_COLOR,
+               part.component_name.c_str(),
                tape->angle(),
                tx, ty);
     }
 }
 
 void PostScriptMachine::PlacePart(const Part &part, const Tape *tape) {
-    // Print in red if tape == NULL ?
-    printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pc\n",
+    // Not available parts because tape is not there or exhausted are still
+    // visualized, but with a warning color.
+    const char *const color = (tape != NULL && tape->parts_available())
+        ? PLACE_COLOR
+        : PLACE_MISSING_PART;
+    printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
            part.bounding_box.p1.x - part.bounding_box.p0.x,
            part.bounding_box.p1.y - part.bounding_box.p0.y,
            part.bounding_box.p0.x, part.bounding_box.p0.y,
-           "", //(part.footprint + "@" + part.value).c_str(),
+           color,
+           //(part.footprint + "@" + part.value) +
            part.component_name.c_str(),
            part.angle,
            part.pos.x + config_->board.origin.x,
@@ -103,16 +125,19 @@ void PostScriptMachine::PlacePart(const Part &part, const Tape *tape) {
 }
 
 void PostScriptMachine::Dispense(const Part &part, const Pad &pad) {
-    // We print the same part for every single one of its pad. So could be more
-    // optimal. Doesn't matter in real life.
-    printf("%.3f %.3f   %.3f %.3f (%s) (%s) %.3f %.3f %.3f pc\n",
-           part.bounding_box.p1.x - part.bounding_box.p0.x,
-           part.bounding_box.p1.y - part.bounding_box.p0.y,
-           part.bounding_box.p0.x, part.bounding_box.p0.y,
-           "", part.component_name.c_str(),
-           part.angle,
-           part.pos.x + config_->board.origin.x,
-           part.pos.y + config_->board.origin.y);
+    if (dispense_parts_printed_.find(&part) == dispense_parts_printed_.end()) {
+        // First time we see this component.
+        printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
+               part.bounding_box.p1.x - part.bounding_box.p0.x,
+               part.bounding_box.p1.y - part.bounding_box.p0.y,
+               part.bounding_box.p0.x, part.bounding_box.p0.y,
+               DISPENSE_PART_COLOR,
+               part.component_name.c_str(),
+               part.angle,
+               part.pos.x + config_->board.origin.x,
+               part.pos.y + config_->board.origin.y);
+        dispense_parts_printed_.insert(&part);
+    }
 
     // TODO: so this part looks like we shouldn't have to do it here.
     const float angle = 2 * M_PI * part.angle / 360.0;

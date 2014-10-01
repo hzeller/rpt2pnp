@@ -6,6 +6,7 @@
 #define MACHINE_H_
 
 #include <string>
+#include <set>
 
 struct PnPConfig;
 class Dimension;
@@ -73,6 +74,7 @@ public:
 
 private:
     const PnPConfig *config_;
+    std::set<const Part *> dispense_parts_printed_;
 };
 
 #endif  // MACHINE_H_

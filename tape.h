@@ -30,6 +30,7 @@ public:
 
     void DebugPrint() const;  // print to stderr.
     float height() const { return z_; }
+    bool parts_available() const { return count_ > 0; }
 
 private:
     float x_, y_, z_;
