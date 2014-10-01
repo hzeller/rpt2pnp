@@ -16,19 +16,30 @@ static float euklid(float a, float b) { return sqrtf(a*a + b*b); }
 float Distance(const Position& a, const Position& b) {
     return euklid(a.x - b.x, a.y - b.y);
 }
-static void Swap(std::vector<const Part*> *parts, size_t i, size_t j) {
-    const Part* tmp = (*parts)[i];
-    (*parts)[i] = (*parts)[j];
-    (*parts)[j] = tmp;
+static void Swap(OptimizeList *list, size_t i, size_t j) {
+    const auto tmp = (*list)[i];
+    (*list)[i] = (*list)[j];
+    (*list)[j] = tmp;
 }
 
-static int FindSmallestDistance(const std::vector<const Part*> parts,
+// Extract position from part and pad. The pad is positioned relative to the
+// part, thus we need to combine these, including rotation.
+static Position ExtractPosition(const std::pair<const Part *, const Pad *> &p) {
+    const Part &part = *p.first;
+    const Pad &pad = *p.second;
+    const float angle = 2 * M_PI * part.angle / 360.0;
+    const float x = part.pos.x + pad.pos.x * cos(angle) - pad.pos.y * sin(angle);
+    const float y = part.pos.y + pad.pos.x * sin(angle) + pad.pos.y * cos(angle);
+    return Position(x, y);
+}
+
+static int FindSmallestDistance(const OptimizeList parts,
                                 size_t range_start,
                                 const Position &reference_pos) {
     float smallest_distance;
     int best = -1;
     for (size_t j = range_start; j < parts.size(); ++j) {
-        float distance = Distance(reference_pos, parts[j]->pos);
+        float distance = Distance(reference_pos, ExtractPosition(parts[j]));
         if (best < 0 || distance < smallest_distance) {
             best = j;
             smallest_distance = distance;
@@ -37,10 +48,12 @@ static int FindSmallestDistance(const std::vector<const Part*> parts,
     return best;
 }
 
-// Very crude, O(n^2) optimization looking for nearest neighbor. Not TSP, but better than random
-void OptimizeParts(std::vector<const Part*> *parts) {
-    for (size_t i = 0; i < parts->size() - 1; ++i) {
-        Swap(parts, i + 1, FindSmallestDistance(*parts, i + 1, (*parts)[i]->pos));
+// Very crude, O(n^2) optimization looking for nearest neighbor.
+// Not TSP solution, but better than random
+void OptimizeParts(OptimizeList *list) {
+    for (size_t i = 0; i < list->size() - 1; ++i) {
+        Swap(list, i + 1,
+             FindSmallestDistance(*list, i + 1, ExtractPosition((*list)[i])));
     }
 }
 

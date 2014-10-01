@@ -9,6 +9,7 @@
 #include <string>
 
 struct Part;
+struct Pad;
 
 struct Position {
     Position(float xx, float yy) : x(xx), y(yy) {}
@@ -32,7 +33,8 @@ struct Box {
 float Distance(const Position& a, const Position& b);
 
 // Find acceptable route for pad visiting. Ideally solves TSP, but
-// heuristics are good as well. (optimizer.cc)
-void OptimizeParts(std::vector<const Part*> *parts);
+// heuristics are good as well.
+typedef std::vector<std::pair<const Part *, const Pad *> > OptimizeList;
+void OptimizeParts(OptimizeList *list);
 
 #endif // RPT2PNP_H

@@ -134,13 +134,16 @@ void CreateHomerInstruction(const Board &board) {
 }
 
 void SolderDispense(const Board &board, Machine *machine) {
-    Board::PartList part_list(board.parts());
-    OptimizeParts(&part_list);
-    // TODO: optimize pad sequence
-    for (const Part *part : part_list) {
+    OptimizeList all_pads;
+    for (const Part *part : board.parts()) {
         for (const Pad &pad : part->pads) {
-            machine->Dispense(*part, pad);
+            all_pads.push_back(std::make_pair(part, &pad));
         }
+    }
+    OptimizeParts(&all_pads);
+
+    for (const auto &p : all_pads) {
+        machine->Dispense(*p.first, *p.second);
     }
 }
 
