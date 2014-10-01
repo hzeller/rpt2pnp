@@ -35,9 +35,9 @@ The invocation without parameters shows the usage:
         -l      : List found <footprint>@<component> <count> from rpt to stdout.
      [Operations]
         -C <config> : Use homer config created via homer from -h
-        -d      : Dispensing solder paste GCode generation.
-        -p      : Pick'n place GCode generation.
-        -P      : Output as PostScript.
+        -d      : Dispensing solder paste.
+        -p      : Pick'n place.
+        -P      : Output as PostScript instead of gcode.
 
 Typically the workflow would be to create configuration via
 homer ( https://github.com/jerkey/homer ).
@@ -49,16 +49,19 @@ Use the `-h` option to create a homer template
 With option `-d` or `-p` you choose the GCode output for dispensing or pnp:
 
      $ ./rpt2pnp -C config.txt mykicadfile.rpt -d > paste-dispensing.gcode
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p > pick-n-place.gcode     
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p > pick-n-place.gcode
 
-You can also create a PostScript view of the board/tape layout
+You can also create a PostScript view instead of GCode output with the `-P`
+option; this is useful to visualize things before messing up a board :)
 
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -P > out.ps
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -d -P > dispense.ps
+     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p -P > pick-n-place.ps
 
 G-Code
 ------
 Right now, the G-Code templates for processing steps is hardcoded in
-constant strings in `gcode-picknplace.cc` and `gcode-dispense-printer.cc`
+constant strings in `gcode-machine.cc` - if your machine needs different
+commands, change things there.
 
 Shortcomings
 ------------

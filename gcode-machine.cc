@@ -22,9 +22,6 @@
 // Ultimately, we want the placement operation be a bit spring-loaded.
 #define TAPE_THICK 0.0
 
-// All templates should be in a separate file somewhere so that we don't
-// have to compile.
-
 // Multiplication to get 360 degrees mapped to one turn. This is specific to
 // our stepper motor. TODO: make configurable
 #define ANGLE_FACTOR (50.34965 / 360)
@@ -36,6 +33,9 @@
 #define Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
 #define Z_HOVER_ABOVE 2             // Above board when moving around
 #define Z_SEPARATE_DROPLET_ABOVE 5  // Above board right after dispensing.
+
+// All templates should be in a separate file somewhere so that we don't
+// have to compile.
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
