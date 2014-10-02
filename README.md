@@ -55,7 +55,13 @@ You can also create a PostScript view instead of GCode output with the `-P`
 option; this is useful to visualize things before messing up a board :)
 
      $ ./rpt2pnp -C config.txt mykicadfile.rpt -d -P > dispense.ps
+
+![Dispensing][dispense-ps]
+
      $ ./rpt2pnp -C config.txt mykicadfile.rpt -p -P > pick-n-place.ps
+
+![Pick and Placing][pnp-ps]
+
 
 G-Code
 ------
@@ -118,3 +124,6 @@ It typically looks like this:
      Tape: SMD_Packages:SM0805@2.2k
      origin:  10 20 2 # fill me
      spacing: 4 0   # fill me
+
+[pnp-ps]: ./img/pnp-postscript.png
+[dispense-ps]: ./img/dispense-postscript.png
