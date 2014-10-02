@@ -42,6 +42,7 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
             if (current_tape) current_tape = NULL;
         } else if (token == "Tape:") {
             current_tape = new Tape();
+            current_tape->SetAngle(90);
             // This tape is valid for multiple values/footprints possibly.
             // Lets all parse them
             token.clear();
@@ -84,7 +85,7 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
                 result.reset(NULL);
             }
             current_tape->SetComponentSpacing(x, y);
-        } else if (token == "spacing:") {
+        } else if (token == "angle:") {
             if (!current_tape) {
                 std::cerr << "spacing without tape";
                 result.reset(NULL);

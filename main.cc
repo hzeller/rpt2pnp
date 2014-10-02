@@ -84,12 +84,23 @@ void CreateConfigTemplate(const Board::PartList& list) {
     printf("#count: 1000  # Optional: available count on tape\n");
     printf("\n");
 
+    int ypos = 20;
     ComponentCount components;
     const int total_count = ExtractComponents(list, &components);
-    for (const auto &pair : components) {
-        printf("\nTape: %s\n", pair.first.c_str());
-        printf("origin:  10 20 2 # fill me\n");
-        printf("spacing: 4 0   # fill me\n");
+    for (const Part* part : list) {
+        const std::string key = part->footprint + "@" + part->value;
+        const auto found_count = components.find(key);
+        if (found_count == components.end())
+            continue; // already printed
+        int width = abs(part->bounding_box.p1.x - part->bounding_box.p0.x) + 5;
+        int height = abs(part->bounding_box.p1.y - part->bounding_box.p0.y);
+        printf("\nTape: %s\n", key.c_str());
+        printf("count: %d\n", found_count->second);
+        printf("origin:  %d %d 2 # fill me\n", 10 + height/2, ypos + width/2);
+        printf("spacing: %d 0   # fill me\n",
+               height < 4 ? 4 : height + 2);
+        ypos += width;
+        components.erase(key);
     }
     fprintf(stderr, "%d components total\n", total_count);
 }
