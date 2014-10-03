@@ -2,6 +2,35 @@
  * (c) h.zeller@acm.org. Free Software. GNU Public License v3.0 and above
  */
 
+/*
+  TODO PnP
+   - Instead of a one-size-fits-all 10mm, have a shallow hover height (1mm).
+     Essentially the clearance we want above obstructions in the path.
+   - determine actual hover depending on component height
+   - Pick:
+      - go hover height over tape.
+      - go down, suck it.
+      - pull up top-of-tape + tape-thickness + 1mm to get the component, that is
+        supposedly as high as the tape, safely out of it
+   - Place:
+      - move it towards the board. Z should be
+        top-of-board + component-height + 1mm. That way multiple of the same
+        component are not knocked over
+      - (thinner components come first in the order, so this is always safe)
+   - Result: best travel times (less Z movement), but guaranteed non-knockover
+     result.
+   - TODO: These height decisions should not be made in the machine. They
+     should happen outside whoever sends the plan to the machine.
+     That way, it allows for easy testing the results by implementing a mock
+     machine in the test.
+
+  Also FIXME:
+  Current assumption of tape is that is sits somewhere on the build-platform.
+  (i.e. that tape-height == component-height).
+  That needs to change, as it could well be elevated on a tray or something and
+  then we would start dropping components from some height on the board :)
+*/
+
 #include "machine.h"
 
 #include <assert.h>
