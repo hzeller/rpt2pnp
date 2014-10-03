@@ -27,16 +27,20 @@ static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
             "Options:\n"
             "\t-h      : Create homer configuration script from rpt.\n"
-            //"\t-t      : Create config template from rpt to stdout. "
-            //"Needs editing.\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
             "[Operations]\n"
-            //"\t-c <config> : Use edited config from -t \n"
             "\t-C <config> : Use homer config created via homer from -h\n"
             "\t-d      : Dispensing solder paste.\n"
+            "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
+            "\t            dispense. init-ms is initial offset, area-to-ms is\n"
+            "\t            milliseconds per mm^2 area covered."
             "\t-p      : Pick'n place.\n"
-            "\t-P      : Output as PostScript instead of GCode.\n",
+            "\t-P      : Output as PostScript instead of GCode.\n"
+            "[Long configuration]\n"
+            "\t-t      : Create easier human-editable config template to "
+            "stdout\n"
+            "\t-c      : Use this configuration with -c instead -C\n",
             prog);
     return 1;
 }
@@ -221,7 +225,7 @@ int main(int argc, char *argv[]) {
     bool out_postscript = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:tlhpd")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlhpd")) != -1) {
         switch (opt) {
         case 'P':
             out_postscript = true;
@@ -231,6 +235,12 @@ int main(int argc, char *argv[]) {
             break;
         case 'C':
             simple_config_filename = strdup(optarg);
+            break;
+        case 'D':
+            if (2 != sscanf(optarg, "%f,%f", &start_ms, &area_ms)) {
+                fprintf(stderr, "Invalid -D spec\n");
+                return usage(argv[0]);
+            }
             break;
         case 't':
             output_type = OUT_CONFIG_TEMPLATE;
