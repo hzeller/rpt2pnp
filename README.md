@@ -36,8 +36,13 @@ The invocation without parameters shows the usage:
      [Operations]
         -C <config> : Use homer config created via homer from -h
         -d      : Dispensing solder paste.
-        -p      : Pick'n place.
-        -P      : Output as PostScript instead of gcode.
+        -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
+                    dispense. init-ms is initial offset, area-to-ms is
+                    milliseconds per mm^2 area covered. -p      : Pick'n place.
+        -P      : Output as PostScript instead of GCode.
+     [Long configuration]
+        -t      : Create easier human-editable config template to stdout
+        -c      : Use this configuration with -c instead -C
 
 Typically the workflow would be to create configuration via
 homer ( https://github.com/jerkey/homer ).
