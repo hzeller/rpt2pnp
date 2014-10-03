@@ -158,17 +158,44 @@ void SolderDispense(const Board &board, Machine *machine) {
     }
 }
 
+static Tape *FindTapeForPart(const PnPConfig *config, const Part *part) {
+    const std::string key = part->footprint + "@" + part->value;
+    auto found = config->tape_for_component.find(key);
+    if (found == config->tape_for_component.end())
+        return NULL;
+    return found->second;
+}
+
+struct ComponentHeightComparator {
+    ComponentHeightComparator(const PnPConfig *config) : config_(config) {}
+
+    bool operator()(const Part *a, const Part *b) {
+        if (a == b) return 0;
+        const float a_height = GetHeight(a);
+        const float b_height = GetHeight(b);
+        if (a_height == b_height) {
+            return a->component_name < b->component_name;
+        }
+        return a_height < b_height;
+    }
+
+    float GetHeight(const Part *part) {
+        const Tape *tape = FindTapeForPart(config_, part);
+        return tape == NULL ? -1 : tape->height();
+    }
+    const PnPConfig *config_;
+};
 void PickNPlace(const PnPConfig *config, const Board &board, Machine *machine) {
     // TODO: lowest height components first to not knock over bigger ones.
-    for (const Part *part : board.parts()) {
+    std::vector<const Part *> list(board.parts());
+    std::sort(list.begin(), list.end(), ComponentHeightComparator(config));
+    for (const Part *part : list) {
         Tape *tape = NULL;
         if (config) {
-            const std::string key = part->footprint + "@" + part->value;
-            auto found = config->tape_for_component.find(key);
-            if (found == config->tape_for_component.end()) {
-                fprintf(stderr, "No tape for '%s'\n", key.c_str());
-            } else {
-                tape = found->second;
+            tape = FindTapeForPart(config, part);
+            if (tape == NULL) {
+                fprintf(stderr, "No tape for '%s'\n",
+                        part->component_name.c_str());
             }
         }
         machine->PickPart(*part, tape);
