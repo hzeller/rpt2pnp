@@ -34,7 +34,7 @@ static int usage(const char *prog) {
             "\t-d      : Dispensing solder paste.\n"
             "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
             "\t            dispense. init-ms is initial offset, area-to-ms is\n"
-            "\t            milliseconds per mm^2 area covered."
+            "\t            milliseconds per mm^2 area covered.\n"
             "\t-p      : Pick'n place.\n"
             "\t-P      : Output as PostScript instead of GCode.\n"
             "[Long configuration]\n"
