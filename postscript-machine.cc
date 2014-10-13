@@ -107,7 +107,8 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     // Draw board
     printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
            config_->board.origin.x, config_->board.origin.y);
-    printf("%.1f %.1f showmark\n", config_->board.origin.x, config_->board.origin.y);
+    printf("%.1f %.1f showmark\n",
+           config_->board.origin.x, config_->board.origin.y);
     // Push a currentpoint on stack (dispense draws a line from here)
     printf("0 0 moveto\n");
     return true;
