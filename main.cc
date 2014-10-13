@@ -190,7 +190,9 @@ struct ComponentHeightComparator {
 void PickNPlace(const PnPConfig *config, const Board &board, Machine *machine) {
     // TODO: lowest height components first to not knock over bigger ones.
     std::vector<const Part *> list(board.parts());
-    std::sort(list.begin(), list.end(), ComponentHeightComparator(config));
+    if (config) {
+        std::sort(list.begin(), list.end(), ComponentHeightComparator(config));
+    }
     for (const Part *part : list) {
         Tape *tape = NULL;
         if (config) {

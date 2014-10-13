@@ -51,6 +51,7 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
             in_pad = true;
             std::string value;
             (*input) >> value;
+            value = value.substr(1, value.length() - 2);
             event->StartPad(value);
         }
         else if (token == "$EndPAD")

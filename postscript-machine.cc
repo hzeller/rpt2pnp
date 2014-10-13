@@ -120,19 +120,17 @@ static void PrintPads(const Part &part, float offset_x, float offset_y,
     printf("%%pads\n");
     printf("gsave\n %.3f %.3f translate %.3f rotate\n",
            offset_x, offset_y, angle);
-    int padnum = 0;
     for (const Pad &pad : part.pads) {
-        ++padnum;
         printf(" 0.7 0.9 0 setrgbcolor\n");
         printf(" %.3f %.3f %.3f %.3f fillrect\n",
                pad.size.w, pad.size.h,
                pad.pos.x - pad.size.w/2,
                pad.pos.y - pad.size.h/2);
         printf(" 0 0 0 setrgbcolor\n");
-        printf(" %.3f %.3f moveto (%d) show stroke\n",
+        printf(" %.3f %.3f moveto (%s) show stroke\n",
                pad.pos.x - pad.size.w/2,
                pad.pos.y - pad.size.h/2,
-               padnum);
+               pad.name.c_str());
     }
     printf(" stroke\ngrestore\n");
 }
