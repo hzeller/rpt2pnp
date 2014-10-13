@@ -35,6 +35,20 @@ static const char ps_preamble[] = R"(
   fill
 } def
 
+% x y
+/showmark {
+  gsave
+  translate
+  0 0 1 setrgbcolor
+  45 rotate
+  0 0 moveto
+  -3 0 rmoveto 6 0 rlineto stroke
+  0 0 moveto
+  0 -3 rmoveto 0 6 rlineto stroke
+  0  0 1 0 360 arc stroke
+  grestore
+} def
+
 % print component
 % <width> <height>  <x0> <y0> <r> <g> <b> <name> <angle> <x> <y> pp
 /pc {
@@ -64,7 +78,7 @@ static const char ps_preamble[] = R"(
 } def
 
 72.0 25.4 div dup scale                  % Switch to mm
-0.1 setlinewidth
+0.05 setlinewidth
 /Helvetica findfont 1.5 scalefont setfont  % Small font
 )";
 
@@ -93,7 +107,7 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     // Draw board
     printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
            config_->board.origin.x, config_->board.origin.y);
-
+    printf("%.1f %.1f showmark\n", config_->board.origin.x, config_->board.origin.y);
     // Push a currentpoint on stack (dispense draws a line from here)
     printf("0 0 moveto\n");
     return true;
