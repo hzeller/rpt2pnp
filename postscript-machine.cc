@@ -16,7 +16,7 @@
 #define PLACE_MISSING_PART  "1 0.3 0"
 
 static const char ps_preamble[] = R"(
-% <dx> <dy> <x0> <y0>
+% <width> <height> <x0> <y0>
 /rect {
   moveto
   1 index 0 rlineto
@@ -26,8 +26,17 @@ static const char ps_preamble[] = R"(
   stroke
 } def
 
+/fillrect {
+  moveto
+  1 index 0 rlineto
+  0 exch rlineto
+  neg 0 rlineto
+  closepath
+  fill
+} def
+
 % print component
-% <dy> <dx>  <x0> <y0> <r> <g> <b> <name> <angle> <x> <y> pp
+% <width> <height>  <x0> <y0> <r> <g> <b> <name> <angle> <x> <y> pp
 /pc {
     gsave
     translate              % takes <x> <y>
@@ -75,7 +84,7 @@ bool PostScriptMachine::Init(const PnPConfig *config,
                board_dim.w * mm_to_point, board_dim.h * mm_to_point);
     } else {
         printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
-               -2 * mm_to_point, -2 * mm_to_point,
+               0 * mm_to_point, 0 * mm_to_point,
                300 * mm_to_point, 300 * mm_to_point);
     }
     printf("%% %s\n", init_comment.c_str());
@@ -90,11 +99,35 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     return true;
 }
 
+static void PrintPads(const Part &part, float offset_x, float offset_y,
+                      float angle){
+    // Print pads first, so that the bounding box is nice and black.
+    printf("%%pads\n");
+    printf("gsave\n %.3f %.3f translate %.3f rotate\n",
+           offset_x, offset_y, angle);
+    int padnum = 0;
+    for (const Pad &pad : part.pads) {
+        ++padnum;
+        printf(" 0.7 0.9 0 setrgbcolor\n");
+        printf(" %.3f %.3f %.3f %.3f fillrect\n",
+               pad.size.w, pad.size.h,
+               pad.pos.x - pad.size.w/2,
+               pad.pos.y - pad.size.h/2);
+        printf(" 0 0 0 setrgbcolor\n");
+        printf(" %.3f %.3f moveto (%d) show stroke\n",
+               pad.pos.x - pad.size.w/2,
+               pad.pos.y - pad.size.h/2,
+               padnum);
+    }
+    printf(" stroke\ngrestore\n");
+}
+
 void PostScriptMachine::PickPart(const Part &part, const Tape *tape) {
     if (tape == NULL) return;
     float tx, ty;
     if (tape->GetPos(&tx, &ty)) {
         // Print component on tape
+        PrintPads(part, tx, ty, tape->angle());
         printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
                part.bounding_box.p1.x - part.bounding_box.p0.x,
                part.bounding_box.p1.y - part.bounding_box.p0.y,
@@ -107,6 +140,12 @@ void PostScriptMachine::PickPart(const Part &part, const Tape *tape) {
 }
 
 void PostScriptMachine::PlacePart(const Part &part, const Tape *tape) {
+    // Print pads first, so that the bounding box is nice and black.
+    PrintPads(part,
+              config_->board.origin.x + part.pos.x,
+              config_->board.origin.y + part.pos.y,
+              part.angle);
+
     // Not available parts because tape is not there or exhausted are still
     // visualized, but with a warning color.
     const char *const color = (tape != NULL && tape->parts_available())
