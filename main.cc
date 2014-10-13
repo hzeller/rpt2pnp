@@ -129,11 +129,9 @@ void CreateHomerInstruction(const Board &board) {
     for (const auto &pair : components) {
         printf("tape%d:%s\tfind first component\n",
                1, pair.first.c_str());
-        int next_pos = std::min(pair.second, 4);
-        if (next_pos > 1) {
-            printf("tape%d:%s\tfind %d. component\n",
-                   next_pos, pair.first.c_str(), next_pos);
-        }
+        const int next_pos = std::min(std::max(2, pair.second), 4);
+        printf("tape%d:%s\tfind %d. component\n",
+               next_pos, pair.first.c_str(), next_pos);
     }
     const Part *board_part = FindPartClosestTo(board.parts(), Position(0, 0));
     if (board_part) {
