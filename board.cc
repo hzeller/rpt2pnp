@@ -135,7 +135,7 @@ Board::~Board() {
     }
 }
 
-bool Board::ReadPartsFromRpt(const std::string& filename) {
+bool Board::ParseFromRpt(const std::string& filename) {
     PartCollector collector(&parts_, &board_dim_);
     std::ifstream in(filename);
     if (!in.is_open()) {

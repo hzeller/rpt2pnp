@@ -35,6 +35,25 @@ static const char ps_preamble[] = R"(
   fill
 } def
 
+% width height
+/grid {
+    gsave
+    currentpoint translate
+    0 0 moveto
+    0.5 setgray
+    0 1 2 index {
+      % y
+      0 1 4 index {
+  	% x
+	1 index
+	0.01 0 360 arc stroke
+      } for
+      pop
+    } for
+    grestore
+    pop pop  % get rid of width/height
+} def
+
 % x y
 /showmark {
   gsave
@@ -107,10 +126,14 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     // Draw board
     printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
            config_->board.origin.x, config_->board.origin.y);
+#if 0
     printf("%.1f %.1f showmark\n",
            config_->board.origin.x, config_->board.origin.y);
+#endif
     // Push a currentpoint on stack (dispense draws a line from here)
-    printf("0 0 moveto\n");
+    printf("%.1f %.1f moveto %.1f %.1f grid\n",
+           config_->board.origin.x, config_->board.origin.y,
+           board_dim.w, board_dim.h);
     return true;
 }
 

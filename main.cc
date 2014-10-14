@@ -269,8 +269,10 @@ int main(int argc, char *argv[]) {
     const char *rpt_file = argv[optind];
 
     Board board;
-    if (!board.ReadPartsFromRpt(rpt_file))
+    if (!board.ParseFromRpt(rpt_file))
         return 1;
+    fprintf(stderr, "Board: %s, %.1fmm x %.1fmm\n",
+            rpt_file, board.dimension().w, board.dimension().h);
 
     if (output_type == OUT_CONFIG_TEMPLATE) {
         CreateConfigTemplate(board.parts());

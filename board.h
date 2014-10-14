@@ -39,7 +39,7 @@ public:
     ~Board();
 
     // Read from kicad rpt file.
-    bool ReadPartsFromRpt(const std::string& filename);
+    bool ParseFromRpt(const std::string& filename);
 
     // Parts. All positions are referenced to (0,0)
     const PartList& parts() const { return parts_; }
