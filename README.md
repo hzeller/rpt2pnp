@@ -38,7 +38,8 @@ The invocation without parameters shows the usage:
         -d      : Dispensing solder paste.
         -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
                     dispense. init-ms is initial offset, area-to-ms is
-                    milliseconds per mm^2 area covered. -p      : Pick'n place.
+                    milliseconds per mm^2 area covered.
+        -p      : Pick'n place.
         -P      : Output as PostScript instead of GCode.
      [Long configuration]
         -t      : Create easier human-editable config template to stdout
