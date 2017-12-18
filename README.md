@@ -29,21 +29,25 @@ configuration file with the origin of the board and the locations of the tapes.
 
 The invocation without parameters shows the usage:
 
-     Usage: ./rpt2pnp <options> <rpt-file>
-     Options:
-        -h      : Create homer configuration script from rpt.
+```
+Usage: ./rpt2pnp [-l|-d|-p] <options> <rpt-file>
+Options:
+There are one of three operations to choose:
+[Operations]
         -l      : List found <footprint>@<component> <count> from rpt to stdout.
-     [Operations]
-        -C <config> : Use homer config created via homer from -h
         -d      : Dispensing solder paste.
         -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
                     dispense. init-ms is initial offset, area-to-ms is
                     milliseconds per mm^2 area covered.
         -p      : Pick'n place.
         -P      : Output as PostScript instead of GCode.
-     [Long configuration]
-        -t      : Create easier human-editable config template to stdout
-        -c      : Use this configuration with -c instead -C
+[Configuration]
+        -t          : Create human-editable config template to stdout
+        -c <config> : read such a config
+[Homer config]
+        -H          : Create homer configuration template to stdout.
+        -C <config> : Use homer config created via homer from -H
+```
 
 Typically the workflow would be to create configuration via
 homer ( https://github.com/jerkey/homer ).
@@ -106,30 +110,36 @@ The template output creates a configuration including descriptions; you need
 to modify all the numbers to match what you have on the bed.
 It typically looks like this:
 
-     Board:
-     origin: 100 100 # x/y origin of the board
-     
-     # This template provides one <footprint>@<component> per tape,
-     # but if you have multiple components that are indeed the same
-     # e.g. smd0805@100n smd0805@0.1uF, then you can just put them
-     # space delimited behind each Tape:
-     #   Tape: smd0805@100n smd0805@0.1uF
-     # Each Tape section requires
-     #   'origin:', which is the (x/y/z) position of
-     # the top of the first component (z: pick-up-height). And
-     #   'spacing:', (dx,dy) to the next one
-     #
-     # Also there are the following optional parameters
-     #angle: 0     # Optional: Default rotation of component on tape.
-     #count: 1000  # Optional: available count on tape
+```
+Board:
+origin: 10 10 1.6 # x/y/z origin of the board; (z=thickness).
 
-     Tape: Capacitors_SMD:c_0805@C
-     origin:  10 20 2 # fill me
-     spacing: 4 0   # fill me
-     
-     Tape: SMD_Packages:SM0805@2.2k
-     origin:  10 20 2 # fill me
-     spacing: 4 0   # fill me
+# Where the tray with all the tapes start.
+Tape-Tray-Origin: 0 45 0
+
+# This template provides one <footprint>@<component> per tape,
+# but if you have multiple components that are indeed the same
+# e.g. smd0805@100n smd0805@0.1uF, then you can just put them
+# space delimited behind each Tape:
+#   Tape: smd0805@100n smd0805@0.1uF
+# Each Tape section requires
+#   'origin:', which is the (x/y/z) position relative to Tape-Tray-Origin of
+# the top of the first component (z: pick-up-height).
+# And
+#   'spacing:', (dx,dy) to the next one
+#
+# Also there are the following optional parameters
+#angle: 0     # Optional: Default rotation of component on tape.
+#count: 1000  # Optional: available count on tape
+
+Tape: Capacitors_SMD:c_0805@C
+origin:  10 20 2 # fill me
+spacing: 4 0   # fill me
+
+Tape: SMD_Packages:SM0805@2.2k
+origin:  10 20 2 # fill me
+spacing: 4 0   # fill me
+```
 
 [pnp-ps]: ./img/pnp-postscript.png
 [dispense-ps]: ./img/dispense-postscript.png
