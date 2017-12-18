@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdio.h>
 
 #include "tape.h"
 #include "board.h"
@@ -26,20 +27,34 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
     std::string token;
     float x, y, z;
     Tape* current_tape = NULL;
+    int line = 1;
+    Position tape_tray_origin;
+    float tape_tray_height = 0.0f;
 
     std::ifstream in(filename);
-    while (result && !in.eof()) {
+    while (!in.eof()) {
         token.clear();
         in >> token;
 
         char buffer[1024];
         in.getline(buffer, sizeof(buffer), '\n');
+        ++line;
 
         if (token.empty() || token[0] == '#')
             continue;
 
         if (token == "Board:") {
             if (current_tape) current_tape = NULL;
+        } else if (token == "Tape-Tray-Origin:") {
+            if (current_tape) current_tape = NULL;
+            if (2 > sscanf(buffer, "%f %f %f",
+                           &tape_tray_origin.x,
+                           &tape_tray_origin.y,
+                           &tape_tray_height)) {
+                fprintf(stderr, "%s:%d: Parse problem tape-tray origin: '%s'\n",
+                        filename.c_str(), line, buffer);
+                return NULL;
+            }
         } else if (token == "Tape:") {
             current_tape = new Tape();
             current_tape->SetAngle(90);
@@ -55,61 +70,74 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename) {
         } else if (token == "origin:") {
             if (current_tape) {
                 if (3 != sscanf(buffer, "%f %f %f", &x, &y, &z)) {
-                    fprintf(stderr, "Parse problem tape origin: '%s'\n",
-                            buffer);
-                    result.reset(NULL);
+                    fprintf(stderr, "%s:%d: Parse problem tape origin: '%s'\n",
+                            filename.c_str(), line, buffer);
+                    return NULL;
                 }
-                current_tape->SetFirstComponentPosition(x, y, z);
+                current_tape->SetFirstComponentPosition(
+                    x + tape_tray_origin.x,
+                    y + tape_tray_origin.y,
+                    z + tape_tray_height);
             } else {
-                if (2 != sscanf(buffer, "%f %f",
-                                &result->board.origin.x, 
-                                &result->board.origin.y)) {
-                    fprintf(stderr, "Parse problem board origin: '%s'\n",
-                            buffer);
-                    result.reset(NULL);
+                if (2 > sscanf(buffer, "%f %f %f",
+                               &result->board.origin.x,
+                               &result->board.origin.y,
+                               &result->board.top)) {  // optional top
+                    fprintf(stderr, "%s:%d: Parse problem board origin: '%s'\n",
+                            filename.c_str(), line, buffer);
+                    return NULL;
                 }
             }
         } else if (token == "spacing:") {
             if (!current_tape) {
-                std::cerr << "spacing without tape";
-                result.reset(NULL);
-                break;
+                std::cerr << filename << ":" << line << "spacing without tape";
+                return NULL;
             }
             if (2 != sscanf(buffer, "%f %f", &x, &y)) {
-                fprintf(stderr, "Parse problem spacing: '%s'\n", buffer);
-                result.reset(NULL);
+                fprintf(stderr, "%s:%d: Parse problem spacing: '%s'\n",
+                        filename.c_str(), line, buffer);
+                return NULL;
             }
             if (x == 0 && y == 0) {
-                fprintf(stderr, "Spacing: eat least one needs to be set '%s'\n",
-                        buffer);  // line no ?
-                result.reset(NULL);
+                fprintf(stderr, "%s:%d: "
+                        "Spacing: eat least one needs to be set '%s'\n",
+                        filename.c_str(), line, buffer);  // line no ?
+                return NULL;
             }
             current_tape->SetComponentSpacing(x, y);
         } else if (token == "angle:") {
             if (!current_tape) {
                 std::cerr << "spacing without tape";
-                result.reset(NULL);
-                break;
+                return NULL;
             }
             if (1 != sscanf(buffer, "%f", &x)) {
-                fprintf(stderr, "Parse problem angle: '%s'\n", buffer);
-                result.reset(NULL);
+                fprintf(stderr, "%s:%d: Parse problem angle: '%s'\n",
+                        filename.c_str(), line, buffer);
+                return NULL;
             }
             current_tape->SetAngle(x);
         } else if (token == "count:") {
             if (!current_tape) {
                 std::cerr << "Count without tape.";
-                result.reset(NULL);
-                break;
+                return NULL;
             }
             int count;
             if (1 != sscanf(buffer, "%d", &count)) {
-                fprintf(stderr, "Parse problem count: '%s'.\n", buffer);
-                result.reset(NULL);
+                fprintf(stderr, "%s:%d: Parse problem count: '%s'.\n",
+                        filename.c_str(), line, buffer);
+                return NULL;
             }
             current_tape->SetNumberComponents(count);
+        } else {
+            fprintf(stderr, "%s:%d: invalid token '%s'\n",
+                    filename.c_str(), line, token.c_str());
+            return NULL;
         }
     }
+
+    // Let's assume that for now
+    result->bed_level = 0;
+
     return result.release();
 }
 
@@ -152,7 +180,7 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
                 t->SetFirstComponentPosition(x, y, z);
                 result->tape_for_component[designator] = t;
             } else {
-                PnPConfig::PartToTape::iterator found;
+                PnPConfig::PartToTapeMap::iterator found;
                 found = result->tape_for_component.find(designator);
                 if (found != result->tape_for_component.end()) {
                     Tape *t = found->second;
@@ -202,4 +230,3 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
     }
     return result.release();
 }
-

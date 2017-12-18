@@ -126,6 +126,15 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     // Draw board
     printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
            config_->board.origin.x, config_->board.origin.y);
+    printf("%.1f %.1f moveto (%.1fmm) show\n",
+           config_->board.origin.x + board_dim.w + 1,
+           config_->board.origin.y + board_dim.h / 2,
+           board_dim.h);
+    printf("%.1f %.1f moveto (%.1fmm) show\n",
+           config_->board.origin.x + board_dim.w / 2,
+           config_->board.origin.y - 2,
+           board_dim.w);
+
 #if 0
     printf("%.1f %.1f showmark\n",
            config_->board.origin.x, config_->board.origin.y);

@@ -24,23 +24,25 @@ static const float minimum_milliseconds = 50;
 static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
 
 static int usage(const char *prog) {
-    fprintf(stderr, "Usage: %s <options> <rpt-file>\n"
+    fprintf(stderr, "Usage: %s [-l|-d|-p] <options> <rpt-file>\n"
             "Options:\n"
-            "\t-h      : Create homer configuration script from rpt.\n"
+            "There are one of three operations to choose:\n"
+            "[Operations]\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
-            "[Operations]\n"
-            "\t-C <config> : Use homer config created via homer from -h\n"
             "\t-d      : Dispensing solder paste.\n"
             "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
             "\t            dispense. init-ms is initial offset, area-to-ms is\n"
             "\t            milliseconds per mm^2 area covered.\n"
             "\t-p      : Pick'n place.\n"
             "\t-P      : Output as PostScript instead of GCode.\n"
-            "[Long configuration]\n"
-            "\t-t      : Create easier human-editable config template to "
+            "[Configuration]\n"
+            "\t-t          : Create human-editable config template to "
             "stdout\n"
-            "\t-c      : Use this configuration with -c instead -C\n",
+            "\t-c <config> : read such a config\n"
+            "[Homer config]\n"
+            "\t-H          : Create homer configuration template to stdout.\n"
+            "\t-C <config> : Use homer config created via homer from -H\n",
             prog);
     return 1;
 }
@@ -71,8 +73,15 @@ const Part *FindPartClosestTo(const Board::PartList& list, const Position &pos) 
     return result;
 }
 
-void CreateConfigTemplate(const Board::PartList& list) {
-    printf("Board:\norigin: 100 100 # x/y origin of the board\n\n");    
+void CreateConfigTemplate(const Board& board) {
+    const Board::PartList& list = board.parts();
+
+    const float origin_x = 10, origin_y = 10;
+
+    printf("Board:\norigin: %.0f %.0f 1.6 # x/y/z origin of the board; (z=thickness).\n\n", origin_x, origin_y);
+
+    printf("# Where the tray with all the tapes start.\n");
+    printf("Tape-Tray-Origin: 0 %.1f 0\n\n", origin_y + board.dimension().h);
 
     printf("# This template provides one <footprint>@<component> per tape,\n");
     printf("# but if you have multiple components that are indeed the same\n");
@@ -80,15 +89,16 @@ void CreateConfigTemplate(const Board::PartList& list) {
     printf("# space delimited behind each Tape:\n");
     printf("#   Tape: smd0805@100n smd0805@0.1uF\n");
     printf("# Each Tape section requires\n");
-    printf("#   'origin:', which is the (x/y/z) position of\n");
-    printf("# the top of the first component (z: pick-up-height). And\n");
+    printf("#   'origin:', which is the (x/y/z) position (relative to "
+           "Tape-Tray-Origin) of\n");
+    printf("# the top of the first component (z: pick-up-height).\n# And\n");
     printf("#   'spacing:', (dx,dy) to the next one\n#\n");
     printf("# Also there are the following optional parameters\n");
     printf("#angle: 0     # Optional: Default rotation of component on tape.\n");
     printf("#count: 1000  # Optional: available count on tape\n");
     printf("\n");
 
-    int ypos = 20;
+    int ypos = 0;
     ComponentCount components;
     const int total_count = ExtractComponents(list, &components);
     for (const Part* part : list) {
@@ -225,7 +235,7 @@ int main(int argc, char *argv[]) {
     bool out_postscript = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlhpd")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpd")) != -1) {
         switch (opt) {
         case 'P':
             out_postscript = true;
@@ -248,7 +258,7 @@ int main(int argc, char *argv[]) {
         case 'l':
             output_type = OUT_CONFIG_LIST;
             break;
-        case 'h':
+        case 'H':
             output_type = OUT_HOMER_INSTRUCTION;
             break;
         case 'p':
@@ -275,7 +285,7 @@ int main(int argc, char *argv[]) {
             rpt_file, board.dimension().w, board.dimension().h);
 
     if (output_type == OUT_CONFIG_TEMPLATE) {
-        CreateConfigTemplate(board.parts());
+        CreateConfigTemplate(board);
         return 0;
     }
     if (output_type == OUT_CONFIG_LIST) {
@@ -303,7 +313,10 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < argc; ++i) {
         all_args.append(argv[i]).append(" ");
     }
-    machine->Init(config, all_args, board.dimension());
+    if (!machine->Init(config, all_args, board.dimension())) {
+        fprintf(stderr, "Initialization failed\n");
+        return 1;
+    }
 
     if (output_type == OUT_DISPENSING) {
         SolderDispense(board, machine);

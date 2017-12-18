@@ -18,14 +18,14 @@ class Board;
 //  - multiple boards
 //  - different board-height for dispense-needle and pick'n place
 struct PnPConfig {
-    typedef std::map<std::string, Tape*> PartToTape;
+    typedef std::map<std::string, Tape*> PartToTapeMap;
     struct BoardConfig {
         Position origin;  // TODO: potentially rotation...
         float top;        // Z position of top-surface of board.
     };
 
     BoardConfig board;
-    PartToTape tape_for_component;
+    PartToTapeMap tape_for_component;
 
     // Baseline. All z-coordinates in board and tape are larger than this.
     float bed_level = -1;
