@@ -68,6 +68,11 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
             }
             event->Position(x * unit_to_mm, y * unit_to_mm);
         }
+        else if (token == "layer") {
+            std::string value;
+            (*input) >> value;
+            event->Layer(value == "front");
+        }
         else if (token == "size") {
             float w, h;
             (*input) >> w >> h;

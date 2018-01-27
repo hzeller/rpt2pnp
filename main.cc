@@ -30,6 +30,7 @@ static int usage(const char *prog) {
             "[Operations]\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
+            "\t-b      : Handle back-of-board (default: front)\n"
             "\t-d      : Dispensing solder paste.\n"
             "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
             "\t            dispense. init-ms is initial offset, area-to-ms is\n"
@@ -233,9 +234,10 @@ int main(int argc, char *argv[]) {
     const char *config_filename = NULL;
     const char *simple_config_filename = NULL;
     bool out_postscript = false;
+    bool handle_top_of_board = true;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpd")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdb")) != -1) {
         switch (opt) {
         case 'P':
             out_postscript = true;
@@ -267,6 +269,9 @@ int main(int argc, char *argv[]) {
         case 'd':
             output_type = OUT_DISPENSING;
             break;
+        case 'b':
+            handle_top_of_board = false;
+            break;
         default: /* '?' */
             return usage(argv[0]);
         }
@@ -279,7 +284,7 @@ int main(int argc, char *argv[]) {
     const char *rpt_file = argv[optind];
 
     Board board;
-    if (!board.ParseFromRpt(rpt_file))
+    if (!board.ParseFromRpt(rpt_file, handle_top_of_board))
         return 1;
     fprintf(stderr, "Board: %s, %.1fmm x %.1fmm\n",
             rpt_file, board.dimension().w, board.dimension().h);

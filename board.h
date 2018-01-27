@@ -19,12 +19,13 @@ struct Pad {
 
 // A part on the board.
 struct Part {
-    Part() : pos(), angle(0) {}
+    Part() : pos(), angle(0), is_front_layer(true) {}
     std::string component_name;  // component name, e.g. R42
     std::string value;           // component value, e.g. 100k
     std::string footprint;       // footprint of component if known.
     Position pos;                // Relative to board
     float angle;                 // Rotation
+    bool is_front_layer;         // on front of board ?
     // The pads are roated around pos with angle.
     std::vector<Pad> pads;       // For paste dispensing and image recognition.
     Box bounding_box;            // relative to pos
@@ -39,7 +40,7 @@ public:
     ~Board();
 
     // Read from kicad rpt file.
-    bool ParseFromRpt(const std::string& filename);
+    bool ParseFromRpt(const std::string& filename, bool layer_top);
 
     // Parts. All positions are referenced to (0,0)
     const PartList& parts() const { return parts_; }
