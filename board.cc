@@ -16,10 +16,10 @@ class PartCollector : public ParseEventReceiver {
 public:
     PartCollector(std::vector<const Part*> *parts,
                   Dimension *board_dimension,
-                  bool requested_layer)
+                  const Board::ReadFilter &filter)
         : current_part_(NULL),
           collected_parts_(parts), board_dimension_(board_dimension),
-          requested_layer_(requested_layer) {}
+          is_accepting_(filter) {}
 
 protected:
     void StartBoard(float max_x, float max_y) override {
@@ -49,7 +49,7 @@ protected:
 
     void EndComponent() override {
         if ((drillSum > 0) // through-hole. We're not interested in that.
-            || (requested_layer_ != current_part_->is_front_layer)) {
+            || !is_accepting_(*current_part_)) {
             delete current_part_;
         } else {
             collected_parts_->push_back(current_part_);
@@ -132,7 +132,7 @@ private:
     Part *current_part_;
     std::vector<const Part*> *collected_parts_;
     Dimension *board_dimension_;
-    const bool requested_layer_;
+    const Board::ReadFilter is_accepting_;
 };
 }  // namespace
 
@@ -144,8 +144,8 @@ Board::~Board() {
     }
 }
 
-bool Board::ParseFromRpt(const std::string& filename, bool top_of_board) {
-    PartCollector collector(&parts_, &board_dim_, top_of_board);
+bool Board::ParseFromRpt(const std::string& filename, ReadFilter filter) {
+    PartCollector collector(&parts_, &board_dim_, filter);
     std::ifstream in(filename);
     if (!in.is_open()) {
         fprintf(stderr, "Can't open %s\n", filename.c_str());

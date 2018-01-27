@@ -6,6 +6,7 @@
 #ifndef PNP_BOARD_H
 #define PNP_BOARD_H
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -36,11 +37,14 @@ class Board {
 public:
     typedef std::vector<const Part*> PartList;
 
+    // A filter for parts to be included in the parts.
+    typedef std::function<bool(const Part&)> ReadFilter;
+
     Board();
     ~Board();
 
     // Read from kicad rpt file.
-    bool ParseFromRpt(const std::string& filename, bool layer_top);
+    bool ParseFromRpt(const std::string& filename, ReadFilter filter);
 
     // Parts. All positions are referenced to (0,0)
     const PartList& parts() const { return parts_; }
