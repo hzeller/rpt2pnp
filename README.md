@@ -35,6 +35,7 @@ Options:
 There are one of three operations to choose:
 [Operations]
         -l      : List found <footprint>@<component> <count> from rpt to stdout.
+        -b      : Handle back-of-board (default: front)
         -d      : Dispensing solder paste.
         -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
                     dispense. init-ms is initial offset, area-to-ms is
