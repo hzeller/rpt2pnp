@@ -77,7 +77,7 @@ static const char *const gcode_preamble = R"(
 G28 X0 Y0  ; Home (x/y) - needle over free space
 G28 Z0     ; Now it is safe to home z
 G21        ; set to mm
-T1         ; Use E1 extruder, our 'A' axis.
+T1         ; Use E1 extruder, our 'A' axis (for PnP component rotation)
 M302       ; cold extrusion override - because it is not actually an extruder.
 G90        ; Use absolute positions in general.
 G92 E0     ; 'home' E axis
@@ -130,8 +130,8 @@ G28 X0 Y0  ; Home x/y, but leave z clear
 M84        ; stop motors
 )";
 
-GCodeMachine::GCodeMachine(float init_ms, float area_ms)
-    : init_ms_(init_ms), area_ms_(area_ms), config_(NULL) {}
+GCodeMachine::GCodeMachine(FILE *output, float init_ms, float area_ms)
+    : output_(output), init_ms_(init_ms), area_ms_(area_ms), config_(NULL) {}
 
 bool GCodeMachine::Init(const PnPConfig *config,
                         const std::string &init_comment,
@@ -143,12 +143,12 @@ bool GCodeMachine::Init(const PnPConfig *config,
     }
     fprintf(stderr, "Board-thickness = %.1fmm\n",
             config_->board.top - config_->bed_level);
-    printf("; %s\n", init_comment.c_str());
+    fprintf(output_, "; %s\n", init_comment.c_str());
     float highest_tape = config_->board.top;
     for (const auto &t : config_->tape_for_component) {
         highest_tape = std::max(highest_tape, t.second->height());
     }
-    printf(gcode_preamble, highest_tape + 10);
+    fprintf(output_, gcode_preamble, highest_tape + 10);
     return true;
 }
 
@@ -167,13 +167,13 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
         + part.footprint + "@" + part.value + ")";
 
     // param: name, x, y, zdown, a, zup
-    printf(gcode_pick,
-           print_name.c_str(),
-           60 * PNP_TO_TAPE_SPEED,
-           px, py, tape->height() + PNP_Z_HOVERING,     // component pos.
-           PNP_ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
-           tape->height(),                              // down to component
-           travel_height);                              // up for travel.
+    fprintf(output_, gcode_pick,
+            print_name.c_str(),
+            60 * PNP_TO_TAPE_SPEED,
+            px, py, tape->height() + PNP_Z_HOVERING,     // component pos.
+            PNP_ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
+            tape->height(),                              // down to component
+            travel_height);                              // up for travel.
 }
 
 void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
@@ -184,15 +184,15 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
         + part.footprint + "@" + part.value + ")";
 
     // param: name, x, y, zup, a, zdown, zup
-    printf(gcode_place,
-           print_name.c_str(),
-           60 * PNP_TO_BOARD_SPEED,
-           part.pos.x + config_->board.origin.x,
-           part.pos.y + config_->board.origin.y,
-           travel_height,
-           PNP_ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
-           tape->height() + board_thick - PNP_TAPE_THICK,
-           travel_height);
+    fprintf(output_, gcode_place,
+            print_name.c_str(),
+            60 * PNP_TO_BOARD_SPEED,
+            part.pos.x + config_->board.origin.x,
+            part.pos.y + config_->board.origin.y,
+            travel_height,
+            PNP_ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
+            tape->height() + board_thick - PNP_TAPE_THICK,
+            travel_height);
 }
 
  void GCodeMachine::Dispense(const Part &part, const Pad &pad) {
@@ -205,16 +205,16 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
      const float pad_y = pad.pos.y;
      const float x = part_x + pad_x * cos(angle) - pad_y * sin(angle);
      const float y = part_y + pad_x * sin(angle) + pad_y * cos(angle);
-     printf(gcode_dispense_move,
-            part.component_name.c_str(), pad.name.c_str(),
-            DISP_MOVE_SPEED * 60,
-            x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
-     printf(gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
+     fprintf(output_, gcode_dispense_move,
+             part.component_name.c_str(), pad.name.c_str(),
+             DISP_MOVE_SPEED * 60,
+             x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
+     fprintf(output_, gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
             config_->board.top + DISP_Z_DISPENSING_ABOVE,
             init_ms_ + area * area_ms_, area,
             config_->board.top + DISP_Z_SEPARATE_DROPLET_ABOVE);
 }
 
 void GCodeMachine::Finish() {
-    printf(gcode_finish);
+    fprintf(output_, gcode_finish);
 }

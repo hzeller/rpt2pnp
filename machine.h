@@ -5,6 +5,8 @@
 #ifndef MACHINE_H_
 #define MACHINE_H_
 
+#include <stdio.h>
+
 #include <string>
 #include <set>
 
@@ -47,7 +49,7 @@ public:
 // A machine
 class GCodeMachine : public Machine {
 public:
-    GCodeMachine(float init_ms, float area_ms);
+    GCodeMachine(FILE *output, float init_ms, float area_ms);
     bool Init(const PnPConfig *config, const std::string &init_comment,
               const Dimension &dimension) override;
     void PickPart(const Part &part, const Tape *tape) override;
@@ -56,6 +58,7 @@ public:
     void Finish() override;
 
 private:
+    FILE *const output_;
     const float init_ms_;
     const float area_ms_;
 
@@ -65,6 +68,8 @@ private:
 // A machine simulation that just shows the oiutput in postscript.
 class PostScriptMachine : public Machine {
 public:
+    PostScriptMachine(FILE *output);
+
     bool Init(const PnPConfig *config, const std::string &init_comment,
               const Dimension &dimension) override;
     void PickPart(const Part &part, const Tape *tape) override;
@@ -73,6 +78,7 @@ public:
     void Finish() override;
 
 private:
+    FILE *const output_;
     const PnPConfig *config_;
     std::set<const Part *> dispense_parts_printed_;
 };

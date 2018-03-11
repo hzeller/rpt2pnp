@@ -101,6 +101,8 @@ static const char ps_preamble[] = R"(
 /Helvetica findfont 1.5 scalefont setfont  % Small font
 )";
 
+PostScriptMachine::PostScriptMachine(FILE *output) : output_(output) {}
+
 bool PostScriptMachine::Init(const PnPConfig *config,
                              const std::string &init_comment,
                              const Dimension& board_dim) {
@@ -111,60 +113,63 @@ bool PostScriptMachine::Init(const PnPConfig *config,
     dispense_parts_printed_.clear();
     const float mm_to_point = 1 / 25.4 * 72.0;
     if (config_->tape_for_component.size() == 0) {
-        printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
-               config_->board.origin.x * mm_to_point,
-               config_->board.origin.y * mm_to_point,
-               board_dim.w * mm_to_point, board_dim.h * mm_to_point);
+        fprintf(output_,
+                "%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
+                config_->board.origin.x * mm_to_point,
+                config_->board.origin.y * mm_to_point,
+                board_dim.w * mm_to_point, board_dim.h * mm_to_point);
     } else {
-        printf("%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
-               0 * mm_to_point, 0 * mm_to_point,
-               300 * mm_to_point, 300 * mm_to_point);
+        fprintf(output_,
+                "%%!PS-Adobe-3.0\n%%%%BoundingBox: %.0f %.0f %.0f %.0f\n\n",
+                0 * mm_to_point, 0 * mm_to_point,
+                300 * mm_to_point, 300 * mm_to_point);
     }
-    printf("%% %s\n", init_comment.c_str());
-    printf("%s", ps_preamble);
+    fprintf(output_, "%% %s\n", init_comment.c_str());
+    fprintf(output_, "%s", ps_preamble);
 
     // Draw board
-    printf("%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
-           config_->board.origin.x, config_->board.origin.y);
-    printf("%.1f %.1f moveto (%.1fmm) show\n",
-           config_->board.origin.x + board_dim.w + 1,
-           config_->board.origin.y + board_dim.h / 2,
-           board_dim.h);
-    printf("%.1f %.1f moveto (%.1fmm) show\n",
-           config_->board.origin.x + board_dim.w / 2,
-           config_->board.origin.y - 2,
-           board_dim.w);
+    fprintf(output_, "%.1f %.1f %.1f %.1f rect\n", board_dim.w, board_dim.h,
+            config_->board.origin.x, config_->board.origin.y);
+    fprintf(output_, "%.1f %.1f moveto (%.1fmm) show\n",
+            config_->board.origin.x + board_dim.w + 1,
+            config_->board.origin.y + board_dim.h / 2,
+            board_dim.h);
+    fprintf(output_, "%.1f %.1f moveto (%.1fmm) show\n",
+            config_->board.origin.x + board_dim.w / 2,
+            config_->board.origin.y - 2,
+            board_dim.w);
 
 #if 0
-    printf("%.1f %.1f showmark\n",
-           config_->board.origin.x, config_->board.origin.y);
+    fprintf(output_, "%.1f %.1f showmark\n",
+            config_->board.origin.x, config_->board.origin.y);
 #endif
     // Push a currentpoint on stack (dispense draws a line from here)
-    printf("%.1f %.1f moveto %.1f %.1f grid\n",
-           config_->board.origin.x, config_->board.origin.y,
-           board_dim.w, board_dim.h);
+    fprintf(output_, "%.1f %.1f moveto %.1f %.1f grid\n",
+            config_->board.origin.x, config_->board.origin.y,
+            board_dim.w, board_dim.h);
     return true;
 }
 
-static void PrintPads(const Part &part, float offset_x, float offset_y,
+static void PrintPads(FILE *output,
+                      const Part &part, float offset_x, float offset_y,
                       float angle){
     // Print pads first, so that the bounding box is nice and black.
-    printf("%%pads\n");
-    printf("gsave\n %.3f %.3f translate %.3f rotate\n",
-           offset_x, offset_y, angle);
+    fprintf(output, "%%pads\n");
+    fprintf(output, "gsave\n %.3f %.3f translate %.3f rotate\n",
+            offset_x, offset_y, angle);
     for (const Pad &pad : part.pads) {
-        printf(" 0.7 0.9 0 setrgbcolor\n");
-        printf(" %.3f %.3f %.3f %.3f fillrect\n",
-               pad.size.w, pad.size.h,
-               pad.pos.x - pad.size.w/2,
-               pad.pos.y - pad.size.h/2);
-        printf(" 0 0 0 setrgbcolor\n");
-        printf(" %.3f %.3f moveto (%s) show stroke\n",
-               pad.pos.x - pad.size.w/2,
-               pad.pos.y - pad.size.h/2,
-               pad.name.c_str());
+        fprintf(output, " 0.7 0.9 0 setrgbcolor\n");
+        fprintf(output, " %.3f %.3f %.3f %.3f fillrect\n",
+                pad.size.w, pad.size.h,
+                pad.pos.x - pad.size.w/2,
+                pad.pos.y - pad.size.h/2);
+        fprintf(output, " 0 0 0 setrgbcolor\n");
+        fprintf(output, " %.3f %.3f moveto (%s) show stroke\n",
+                pad.pos.x - pad.size.w/2,
+                pad.pos.y - pad.size.h/2,
+                pad.name.c_str());
     }
-    printf(" stroke\ngrestore\n");
+    fprintf(output, " stroke\ngrestore\n");
 }
 
 void PostScriptMachine::PickPart(const Part &part, const Tape *tape) {
@@ -172,21 +177,21 @@ void PostScriptMachine::PickPart(const Part &part, const Tape *tape) {
     float tx, ty;
     if (tape->GetPos(&tx, &ty)) {
         // Print component on tape
-        PrintPads(part, tx, ty, tape->angle());
-        printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
-               part.bounding_box.p1.x - part.bounding_box.p0.x,
-               part.bounding_box.p1.y - part.bounding_box.p0.y,
-               part.bounding_box.p0.x, part.bounding_box.p0.y,
-               PICK_COLOR,
-               part.component_name.c_str(),
-               tape->angle(),
-               tx, ty);
+        PrintPads(output_, part, tx, ty, tape->angle());
+        fprintf(output_, "%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
+                part.bounding_box.p1.x - part.bounding_box.p0.x,
+                part.bounding_box.p1.y - part.bounding_box.p0.y,
+                part.bounding_box.p0.x, part.bounding_box.p0.y,
+                PICK_COLOR,
+                part.component_name.c_str(),
+                tape->angle(),
+                tx, ty);
     }
 }
 
 void PostScriptMachine::PlacePart(const Part &part, const Tape *tape) {
     // Print pads first, so that the bounding box is nice and black.
-    PrintPads(part,
+    PrintPads(output_, part,
               config_->board.origin.x + part.pos.x,
               config_->board.origin.y + part.pos.y,
               part.angle);
@@ -196,30 +201,30 @@ void PostScriptMachine::PlacePart(const Part &part, const Tape *tape) {
     const char *const color = (tape != NULL && tape->parts_available())
         ? PLACE_COLOR
         : PLACE_MISSING_PART;
-    printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
-           part.bounding_box.p1.x - part.bounding_box.p0.x,
-           part.bounding_box.p1.y - part.bounding_box.p0.y,
-           part.bounding_box.p0.x, part.bounding_box.p0.y,
-           color,
-           //(part.footprint + "@" + part.value) +
-           part.component_name.c_str(),
-           part.angle,
-           part.pos.x + config_->board.origin.x,
-           part.pos.y + config_->board.origin.y);
+    fprintf(output_, "%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
+            part.bounding_box.p1.x - part.bounding_box.p0.x,
+            part.bounding_box.p1.y - part.bounding_box.p0.y,
+            part.bounding_box.p0.x, part.bounding_box.p0.y,
+            color,
+            //(part.footprint + "@" + part.value) +
+            part.component_name.c_str(),
+            part.angle,
+            part.pos.x + config_->board.origin.x,
+            part.pos.y + config_->board.origin.y);
 }
 
 void PostScriptMachine::Dispense(const Part &part, const Pad &pad) {
     if (dispense_parts_printed_.find(&part) == dispense_parts_printed_.end()) {
         // First time we see this component.
-        printf("%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
-               part.bounding_box.p1.x - part.bounding_box.p0.x,
-               part.bounding_box.p1.y - part.bounding_box.p0.y,
-               part.bounding_box.p0.x, part.bounding_box.p0.y,
-               DISPENSE_PART_COLOR,
-               part.component_name.c_str(),
-               part.angle,
-               part.pos.x + config_->board.origin.x,
-               part.pos.y + config_->board.origin.y);
+        fprintf(output_, "%.3f %.3f   %.3f %.3f %s (%s) %.3f %.3f %.3f pc\n",
+                part.bounding_box.p1.x - part.bounding_box.p0.x,
+                part.bounding_box.p1.y - part.bounding_box.p0.y,
+                part.bounding_box.p0.x, part.bounding_box.p0.y,
+                DISPENSE_PART_COLOR,
+                part.component_name.c_str(),
+                part.angle,
+                part.pos.x + config_->board.origin.x,
+                part.pos.y + config_->board.origin.y);
         dispense_parts_printed_.insert(&part);
     }
 
@@ -232,11 +237,11 @@ void PostScriptMachine::Dispense(const Part &part, const Pad &pad) {
     const float pad_y = pad.pos.y;
     const float x = part_x + pad_x * cos(angle) - pad_y * sin(angle);
     const float y = part_y + pad_x * sin(angle) + pad_y * cos(angle);
-    printf("%.3f %.3f m %.3f pp \n%.3f %.3f moveto ",
-           x, y, sqrtf(area / M_PI), x, y);
+    fprintf(output_, "%.3f %.3f m %.3f pp \n%.3f %.3f moveto ",
+            x, y, sqrtf(area / M_PI), x, y);
 
 }
 
 void PostScriptMachine::Finish() {
-    printf("showpage\n");
+    fprintf(output_, "showpage\n");
 }

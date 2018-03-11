@@ -37,6 +37,7 @@ static int usage(const char *prog) {
             "\n[Output]\n"
             "\tDefault output is gcode to stdout\n"
             "\t-P      : Preview: Output as PostScript instead of GCode.\n"
+            "\t-O<file>: Output to specified file instead of stdout\n"
             "\n[Choice of components to handle]\n"
             "\t-b      : Handle back-of-board (default: front)\n"
             "\t-x<list>: Comma-separated list of component references "
@@ -261,9 +262,10 @@ int main(int argc, char *argv[]) {
     const char *simple_config_filename = NULL;
     bool handle_top_of_board = true;
     std::set<std::string> blacklist;
+    FILE *output = stdout;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:")) != -1) {
         switch (opt) {
         case 'P':
             out_option = OUT_POSTSCRIPT;
@@ -278,6 +280,13 @@ int main(int argc, char *argv[]) {
             if (2 != sscanf(optarg, "%f,%f", &start_ms, &area_ms)) {
                 fprintf(stderr, "Invalid -D spec\n");
                 return usage(argv[0]);
+            }
+            break;
+        case 'O':
+            output = fopen(optarg, "w");
+            if (output == NULL) {
+                perror("Couldn't open requested output file for write");
+                return 1;
             }
             break;
         case 't':
@@ -368,10 +377,10 @@ int main(int argc, char *argv[]) {
     Machine *machine = NULL;
     switch (out_option) {
     case OUT_GCODE:
-        machine = new GCodeMachine(start_ms, area_ms);
+        machine = new GCodeMachine(output, start_ms, area_ms);
         break;
     case OUT_POSTSCRIPT:
-        machine = new PostScriptMachine();
+        machine = new PostScriptMachine(output);
         break;
     }
 
