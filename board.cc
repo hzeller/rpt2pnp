@@ -32,6 +32,7 @@ protected:
         current_part_ = new Part();
         current_part_->component_name = c;
         is_smd_ = false;
+        drill_sum_ = 0;
         angle_ = 0;
     }
 
@@ -51,8 +52,13 @@ protected:
         is_smd_ = smd;
     }
 
+    void Drill(float size) override {
+        drill_sum_ += size;
+    }
+
     void EndComponent() override {
-        if (!is_smd_ || !is_accepting_(*current_part_)) {
+        const bool looks_like_smd = is_smd_ || drill_sum_ == 0;
+        if (!looks_like_smd || !is_accepting_(*current_part_)) {
             delete current_part_;
         } else {
             collected_parts_->push_back(current_part_);
@@ -125,6 +131,7 @@ private:
     float angle_;
     bool is_smd_;
     bool in_pad_;
+    float drill_sum_;  // heuristic to determine smd components.
 
     ::Pad current_pad_;
     std::string component_name_;
