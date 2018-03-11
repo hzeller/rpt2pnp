@@ -82,8 +82,9 @@
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
-G28 X0 Y0  (Home x/y - needle over free space)
-G28 Z0     (Now it is safe to home z)
+G28 Y0     (Home y - away from holding bracket)
+G28 X0     (Safe to home X now)
+G28 Z0     (.. and z)
 G21        (set to mm)
 T1         (Use E1 extruder, our 'A' axis for PnP component rotation)
 M302       (cold extrusion override - because it is not actually an extruder)

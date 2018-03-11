@@ -31,6 +31,7 @@ public:
     virtual void Position(float x, float y) {}
     virtual void Size(float w, float h) {}
     virtual void Layer(bool is_front) {}
+    virtual void IsSMD(bool smd) {}
 
     // If this pad doesn't have a pad, then this drill size is 0.0
     virtual void Drill(float size) {}

@@ -73,6 +73,13 @@ bool RptParse(std::istream *input, ParseEventReceiver *event) {
             (*input) >> value;
             event->Layer(value == "front");
         }
+        else if (token == "attribut") {
+            std::string value;
+            (*input) >> value;
+            if (value == "smd") {
+                event->IsSMD(true);
+            }
+        }
         else if (token == "size") {
             float w, h;
             (*input) >> w >> h;

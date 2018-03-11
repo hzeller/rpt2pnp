@@ -31,7 +31,7 @@ protected:
         in_pad_ = false;
         current_part_ = new Part();
         current_part_->component_name = c;
-        drillSum = 0;
+        is_smd_ = false;
         angle_ = 0;
     }
 
@@ -47,9 +47,12 @@ protected:
         current_part_->is_front_layer = is_front;
     }
 
+    void IsSMD(bool smd) override {
+        is_smd_ = smd;
+    }
+
     void EndComponent() override {
-        if ((drillSum > 0) // through-hole. We're not interested in that.
-            || !is_accepting_(*current_part_)) {
+        if (!is_smd_ || !is_accepting_(*current_part_)) {
             delete current_part_;
         } else {
             collected_parts_->push_back(current_part_);
@@ -100,10 +103,6 @@ protected:
         }
     }
 
-    void Drill(float size) override {
-        drillSum += size; // looking for nonzero drill size
-    }
-
     void Orientation(float angle) override {
         if (in_pad_)
             return;
@@ -124,7 +123,7 @@ private:
 
     // Current coordinate system.
     float angle_;
-    float drillSum; // add up all the pad drill sizes, should be 0 for smt
+    bool is_smd_;
     bool in_pad_;
 
     ::Pad current_pad_;
