@@ -230,3 +230,11 @@ PnPConfig *ParseSimplePnPConfiguration(const Board &board,
     }
     return result.release();
 }
+
+PnPConfig *CreateEmptyConfiguration() {
+    std::unique_ptr<PnPConfig> result(new PnPConfig());
+    result->board.origin = { 0, 0 };
+    result->board.top = TYPICAL_BOARD_THICKNESS;
+    result->bed_level = 0;
+    return result.release();
+}

@@ -29,23 +29,26 @@ static int usage(const char *prog) {
     fprintf(stderr, "Usage: %s [-l|-d|-p] <options> <rpt-file>\n"
             "Options:\n"
             "There are one of three operations to choose:\n"
-            "[Operations]\n"
+            "[Operations. Choose one of these]\n"
+            "\t-d      : Dispensing solder paste.\n"
+            "\t-p      : Pick'n place.\n"
             "\t-l      : List found <footprint>@<component> <count> from rpt "
             "to stdout.\n"
+            "\n[Output]\n"
+            "\tDefault output is gcode to stdout\n"
+            "\t-P      : Preview: Output as PostScript instead of GCode.\n"
+            "\n[Choice of components to handle]\n"
             "\t-b      : Handle back-of-board (default: front)\n"
             "\t-x<list>: Comma-separated list of component references "
             "to exclude\n"
-            "\t-d      : Dispensing solder paste.\n"
-            "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
-            "\t            dispense. init-ms is initial offset, area-to-ms is\n"
-            "\t            milliseconds per mm^2 area covered.\n"
-            "\t-p      : Pick'n place.\n"
-            "\t-P      : Output as PostScript instead of GCode.\n"
-            "[Configuration]\n"
+            "\n[Configuration]\n"
             "\t-t          : Create human-editable config template to "
             "stdout\n"
             "\t-c <config> : read such a config\n"
-            "[Homer config]\n"
+            "\t-D<init-ms,area-to-ms> : Milliseconds to leave pressure on to\n"
+            "\t            dispense. init-ms is initial offset, area-to-ms is\n"
+            "\t            milliseconds per mm^2 area covered.\n"
+            "\n[Homer config]\n"
             "\t-H          : Create homer configuration template to stdout.\n"
             "\t-C <config> : Use homer config created via homer from -H\n",
             prog);
@@ -238,20 +241,24 @@ std::set<std::string> ParseCommaSeparated(const char *start) {
 }
 
 int main(int argc, char *argv[]) {
-    enum OutputType {
-        OUT_NONE,
-        OUT_DISPENSING,
-        OUT_PICKNPLACE,
-        OUT_CONFIG_TEMPLATE,
-        OUT_CONFIG_LIST,
-        OUT_HOMER_INSTRUCTION,
-    } output_type = OUT_NONE;
+    enum Operation {
+        OP_NONE,
+        OP_DISPENSING,
+        OP_PICKNPLACE,
+        OP_CONFIG_TEMPLATE,
+        OP_CONFIG_LIST,
+        OP_HOMER_INSTRUCTION,
+    } do_operation = OP_NONE;
+
+    enum OutputOption {
+        OUT_POSTSCRIPT,
+        OUT_GCODE,
+    } out_option = OUT_GCODE;
 
     float start_ms = minimum_milliseconds;
     float area_ms = area_to_milliseconds;
     const char *config_filename = NULL;
     const char *simple_config_filename = NULL;
-    bool out_postscript = false;
     bool handle_top_of_board = true;
     std::set<std::string> blacklist;
 
@@ -259,7 +266,7 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:")) != -1) {
         switch (opt) {
         case 'P':
-            out_postscript = true;
+            out_option = OUT_POSTSCRIPT;
             break;
         case 'c':
             config_filename = strdup(optarg);
@@ -274,19 +281,19 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 't':
-            output_type = OUT_CONFIG_TEMPLATE;
+            do_operation = OP_CONFIG_TEMPLATE;
             break;
         case 'l':
-            output_type = OUT_CONFIG_LIST;
+            do_operation = OP_CONFIG_LIST;
             break;
         case 'H':
-            output_type = OUT_HOMER_INSTRUCTION;
+            do_operation = OP_HOMER_INSTRUCTION;
             break;
         case 'p':
-            output_type = OUT_PICKNPLACE;
+            do_operation = OP_PICKNPLACE;
             break;
         case 'd':
-            output_type = OUT_DISPENSING;
+            do_operation = OP_DISPENSING;
             break;
         case 'b':
             handle_top_of_board = false;
@@ -318,30 +325,55 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Board: %s, %.1fmm x %.1fmm\n",
             rpt_file, board.dimension().w, board.dimension().h);
 
-    if (output_type == OUT_CONFIG_TEMPLATE) {
+    /*
+     * Simple operations: output some metadata.
+     */
+    switch (do_operation) {
+    case OP_NONE:
+        fprintf(stderr, "Please choose operation with -d or -p\n");
+        return usage(argv[0]);
+    case OP_CONFIG_TEMPLATE:
         CreateConfigTemplate(board);
         return 0;
-    }
-    if (output_type == OUT_CONFIG_LIST) {
+    case OP_CONFIG_LIST:
         CreateList(board.parts());
         return 0;
-    }
-    if (output_type == OUT_HOMER_INSTRUCTION) {
+    case OP_HOMER_INSTRUCTION:
         CreateHomerInstruction(board);
         return 0;
+
+    case OP_DISPENSING:
+    case OP_PICKNPLACE:
+        /* more involved operations need a machine to be initialized, to
+         * be dealt with below.
+         */
+        break;
     }
 
     PnPConfig *config = NULL;
 
     if (config_filename != NULL) {
         config = ParsePnPConfiguration(config_filename);
-    } else if (simple_config_filename != NULL) {
+    }
+    else if (simple_config_filename != NULL) {
         config = ParseSimplePnPConfiguration(board, simple_config_filename);
     }
+    else if (do_operation == OP_DISPENSING) {
+        // Only in the dispensing operation, a very simple config is feasible.
+        fprintf(stderr, "Didn't get configuration. Creating a simple one "
+                "for dispensing\n");
+        config = CreateEmptyConfiguration();
+    }
 
-    Machine *machine = out_postscript
-        ? (Machine*) new PostScriptMachine()
-        : (Machine*) new GCodeMachine(start_ms, area_ms);
+    Machine *machine = NULL;
+    switch (out_option) {
+    case OUT_GCODE:
+        machine = new GCodeMachine(start_ms, area_ms);
+        break;
+    case OUT_POSTSCRIPT:
+        machine = new PostScriptMachine();
+        break;
+    }
 
     std::string all_args;
     for (int i = 0; i < argc; ++i) {
@@ -352,16 +384,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (output_type == OUT_DISPENSING) {
+    if (do_operation == OP_DISPENSING) {
         SolderDispense(board, machine);
-    } else if (output_type == OUT_PICKNPLACE) {
+    }
+    else if (do_operation == OP_PICKNPLACE) {
         PickNPlace(config, board, machine);
-    } else {
-        fprintf(stderr, "Please choose operation with -d or -p\n");
     }
 
     machine->Finish();
 
     delete machine;
+    delete config;
     return 0;
 }

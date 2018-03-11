@@ -21,7 +21,7 @@ struct PnPConfig {
     typedef std::map<std::string, Tape*> PartToTapeMap;
     struct BoardConfig {
         Position origin;  // TODO: potentially rotation...
-        float top;        // Z position of top-surface of board.
+        float top = 0;    // Z position of top-surface of board.
     };
 
     BoardConfig board;
@@ -39,4 +39,7 @@ PnPConfig *ParsePnPConfiguration(const std::string& filename);
 // Simplified PNP config: one line at a time
 PnPConfig *ParseSimplePnPConfiguration(const Board &board,
                                        const std::string& filename);
+
+// Sometimes a dummy baseline configuration is sufficient.
+PnPConfig *CreateEmptyConfiguration();
 #endif  // PNP_CONFIG_H
