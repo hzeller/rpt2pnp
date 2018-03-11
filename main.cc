@@ -32,11 +32,13 @@ static int usage(const char *prog) {
             "[Operations. Choose one of these]\n"
             "\t-d      : Dispensing solder paste.\n"
             "\t-p      : Pick'n place.\n"
-            "\t-l      : List found <footprint>@<component> <count> from rpt "
-            "to stdout.\n"
+            "\t-l      : Create BOM list <footprint>@<component> <count>\n"
+            "\t          from parts found in rpt to stdout.\n"
             "\n[Output]\n"
             "\tDefault output is gcode to stdout\n"
             "\t-P      : Preview: Output as PostScript instead of GCode.\n"
+            "\t-m      : Directly connect to machine with STDOUT -> machine,\n"
+            "\t          STDIN <- machine. Use socat to do the 'wiring'.\n"
             "\t-O<file>: Output to specified file instead of stdout\n"
             "\n[Choice of components to handle]\n"
             "\t-b      : Handle back-of-board (default: front)\n"
@@ -254,6 +256,7 @@ int main(int argc, char *argv[]) {
     enum OutputOption {
         OUT_POSTSCRIPT,
         OUT_GCODE,
+        OUT_MACHINE,
     } out_option = OUT_GCODE;
 
     float start_ms = minimum_milliseconds;
@@ -262,13 +265,16 @@ int main(int argc, char *argv[]) {
     const char *simple_config_filename = NULL;
     bool handle_top_of_board = true;
     std::set<std::string> blacklist;
-    FILE *output = stdout;
+    FILE *output = NULL;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:m")) != -1) {
         switch (opt) {
         case 'P':
             out_option = OUT_POSTSCRIPT;
+            break;
+        case 'm':
+            out_option = OUT_MACHINE;
             break;
         case 'c':
             config_filename = strdup(optarg);
@@ -317,6 +323,16 @@ int main(int argc, char *argv[]) {
 
     if (optind >= argc) {
         return usage(argv[0]);
+    }
+
+    if (output != NULL && out_option == OUT_MACHINE) {
+        fprintf(stderr, "Machine output is chosen with -m. "
+                "But also output file with -O. Choose only one.\n\n");
+        return usage(argv[0]);
+    }
+
+    if (output == NULL) {
+        output = stdout;
     }
 
     const char *rpt_file = argv[optind];
@@ -381,6 +397,10 @@ int main(int argc, char *argv[]) {
         break;
     case OUT_POSTSCRIPT:
         machine = new PostScriptMachine(output);
+        break;
+    case OUT_MACHINE:
+        machine = new GCodeMachine(STDIN_FILENO, STDOUT_FILENO,
+                                   start_ms, area_ms);
         break;
     }
 

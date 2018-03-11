@@ -33,19 +33,30 @@ The invocation without parameters shows the usage:
 Usage: ./rpt2pnp [-l|-d|-p] <options> <rpt-file>
 Options:
 There are one of three operations to choose:
-[Operations]
-        -l      : List found <footprint>@<component> <count> from rpt to stdout.
-        -b      : Handle back-of-board (default: front)
-        -x<list>: Comma-separated list of component designators to exclude
+[Operations. Choose one of these]
         -d      : Dispensing solder paste.
-        -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
-                    dispense. init-ms is initial offset, area-to-ms is
-                    milliseconds per mm^2 area covered.
         -p      : Pick'n place.
-        -P      : Output as PostScript instead of GCode.
+        -l      : Create BOM list <footprint>@<component> <count>
+                  from parts found in rpt to stdout.
+
+[Output]
+        Default output is gcode to stdout
+        -P      : Preview: Output as PostScript instead of GCode.
+        -m      : Directly connect to machine with STDOUT -> machine,
+                  STDIN <- machine. Use socat to do the 'wiring'.
+        -O<file>: Output to specified file instead of stdout
+
+[Choice of components to handle]
+        -b      : Handle back-of-board (default: front)
+        -x<list>: Comma-separated list of component references to exclude
+
 [Configuration]
         -t          : Create human-editable config template to stdout
         -c <config> : read such a config
+        -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
+                    dispense. init-ms is initial offset, area-to-ms is
+                    milliseconds per mm^2 area covered.
+
 [Homer config]
         -H          : Create homer configuration template to stdout.
         -C <config> : Use homer config created via homer from -H
@@ -60,19 +71,35 @@ Use the `-h` option to create a homer template
 .. Then create a configuration with homer, and input it via the `-C` option.
 With option `-d` or `-p` you choose the GCode output for dispensing or pnp:
 
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -d > paste-dispensing.gcode
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p > pick-n-place.gcode
+     $ ./rpt2pnp -d -C config.txt mykicadfile.rpt -O paste-dispensing.gcode
+     $ ./rpt2pnp -p -C config.txt mykicadfile.rpt -O pick-n-place.gcode
 
 You can also create a PostScript view instead of GCode output with the `-P`
 option; this is useful to visualize things before messing up a board :)
 
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -d -P > dispense.ps
+     $ ./rpt2pnp -d -C config.txt mykicadfile.rpt -P -O dispense.ps
 
 ![Dispensing][dispense-ps]
 
-     $ ./rpt2pnp -C config.txt mykicadfile.rpt -p -P > pick-n-place.ps
+     $ ./rpt2pnp -p -C config.txt mykicadfile.rpt -P -O pick-n-place.ps
 
 ![Pick and Placing][pnp-ps]
+
+Directly connect to machine
+---------------------------
+
+This is experimental right now. Use socat to connect to your machine, e.g.
+a 3D printer with a serial interface:
+
+```
+ socat EXEC:"./rpt2pnp -d mykicadfile.rpt" /dev/ttyACM0,rawer,b115200
+```
+
+... or a machine running BeagleG:
+
+```
+ socat EXEC:"./rpt2pnp -d mykicadfile.rpt" TCP4:beagleg-machine.local:4000
+```
 
 
 G-Code

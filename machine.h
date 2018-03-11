@@ -50,14 +50,8 @@ public:
 // A machine
 class GCodeMachine : public Machine {
 public:
-    // A gcode machine. Each line is delivered to the write_line() function
-    // which can be implemented by the caller for finer-grained control what
-    // should happen to each gcode-line.
-    GCodeMachine(std::function<void(const char *str, size_t len)> write_line,
-                 float init_ms, float area_ms);
-
-    // Simple output to a buffered FILE.
     GCodeMachine(FILE *output, float init_ms, float area_ms);
+    GCodeMachine(int input_fd, int output_fd, float init_ms, float area_ms);
 
     bool Init(const PnPConfig *config, const std::string &init_comment,
               const Dimension &dimension) override;
@@ -67,6 +61,9 @@ public:
     void Finish() override;
 
 private:
+    GCodeMachine(std::function<void(const char *str, size_t len)> write_line,
+                 float init_ms, float area_ms);
+
     // Send the commands to the write_line_() function, line by line.
     void SendFormattedCommands(const char *format, ...);
 
