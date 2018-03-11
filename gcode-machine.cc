@@ -36,6 +36,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdarg.h>
+#include <string.h>
 
 #include "tape.h"
 #include "board.h"
@@ -71,6 +73,8 @@
 
 // All templates should be in a separate file somewhere so that we don't
 // have to compile.
+
+// TODO: The positional arguments are pretty fragile.
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
@@ -113,12 +117,13 @@ G1 Z%-6.2f    ; Move up
 // param: component-name, pad-name, x, y, hover-z
 static const char *const gcode_dispense_move = R"(
 ;; -- component %s, pad %s
-G0 F%d X%.3f Y%.3f Z%.3f ; move there.)";
+G0 F%d X%.3f Y%.3f Z%.3f ; move there.
+)";
 
 // Dispense paste.
 // param: z-dispense-height, wait-time-ms, area, z-separate-droplet
-static const char *const gcode_dispense_paste = R"(
-G1 F%d Z%.2f ; Go down to dispense
+static const char *const gcode_dispense_paste =
+    R"(G1 F%d Z%.2f ; Go down to dispense
 M106      ; switch on fan (=solenoid)
 G4 P%-5.1f ; Wait time dependent on area %.2f mm^2
 M107      ; switch off solenoid
@@ -130,8 +135,17 @@ G28 X0 Y0  ; Home x/y, but leave z clear
 M84        ; stop motors
 )";
 
+GCodeMachine::GCodeMachine(
+    std::function<void(const char *str, size_t len)> write_line,
+    float init_ms, float area_ms)
+    : write_line_(std::move(write_line)), init_ms_(init_ms), area_ms_(area_ms),
+      config_(NULL) {}
+
 GCodeMachine::GCodeMachine(FILE *output, float init_ms, float area_ms)
-    : output_(output), init_ms_(init_ms), area_ms_(area_ms), config_(NULL) {}
+    : GCodeMachine([output](const char *str, size_t len) {
+            fwrite(str, 1, len, output);
+            fflush(output);
+        }, init_ms, area_ms) {}
 
 bool GCodeMachine::Init(const PnPConfig *config,
                         const std::string &init_comment,
@@ -143,12 +157,12 @@ bool GCodeMachine::Init(const PnPConfig *config,
     }
     fprintf(stderr, "Board-thickness = %.1fmm\n",
             config_->board.top - config_->bed_level);
-    fprintf(output_, "; %s\n", init_comment.c_str());
+    SendFormattedCommands("; %s\n", init_comment.c_str());
     float highest_tape = config_->board.top;
     for (const auto &t : config_->tape_for_component) {
         highest_tape = std::max(highest_tape, t.second->height());
     }
-    fprintf(output_, gcode_preamble, highest_tape + 10);
+    SendFormattedCommands(gcode_preamble, highest_tape + 10);
     return true;
 }
 
@@ -167,13 +181,14 @@ void GCodeMachine::PickPart(const Part &part, const Tape *tape) {
         + part.footprint + "@" + part.value + ")";
 
     // param: name, x, y, zdown, a, zup
-    fprintf(output_, gcode_pick,
-            print_name.c_str(),
-            60 * PNP_TO_TAPE_SPEED,
-            px, py, tape->height() + PNP_Z_HOVERING,     // component pos.
-            PNP_ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
-            tape->height(),                              // down to component
-            travel_height);                              // up for travel.
+    SendFormattedCommands(
+        gcode_pick,
+        print_name.c_str(),
+        60 * PNP_TO_TAPE_SPEED,
+        px, py, tape->height() + PNP_Z_HOVERING,     // component pos.
+        PNP_ANGLE_FACTOR * fmod(tape->angle(), 360.0),   // pickup angle
+        tape->height(),                              // down to component
+        travel_height);                              // up for travel.
 }
 
 void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
@@ -184,15 +199,16 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
         + part.footprint + "@" + part.value + ")";
 
     // param: name, x, y, zup, a, zdown, zup
-    fprintf(output_, gcode_place,
-            print_name.c_str(),
-            60 * PNP_TO_BOARD_SPEED,
-            part.pos.x + config_->board.origin.x,
-            part.pos.y + config_->board.origin.y,
-            travel_height,
-            PNP_ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
-            tape->height() + board_thick - PNP_TAPE_THICK,
-            travel_height);
+    SendFormattedCommands(
+        gcode_place,
+        print_name.c_str(),
+        60 * PNP_TO_BOARD_SPEED,
+        part.pos.x + config_->board.origin.x,
+        part.pos.y + config_->board.origin.y,
+        travel_height,
+        PNP_ANGLE_FACTOR * fmod(part.angle - tape->angle() + 360, 360.0),
+        tape->height() + board_thick - PNP_TAPE_THICK,
+        travel_height);
 }
 
  void GCodeMachine::Dispense(const Part &part, const Pad &pad) {
@@ -205,16 +221,40 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
      const float pad_y = pad.pos.y;
      const float x = part_x + pad_x * cos(angle) - pad_y * sin(angle);
      const float y = part_y + pad_x * sin(angle) + pad_y * cos(angle);
-     fprintf(output_, gcode_dispense_move,
-             part.component_name.c_str(), pad.name.c_str(),
-             DISP_MOVE_SPEED * 60,
-             x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
-     fprintf(output_, gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
-            config_->board.top + DISP_Z_DISPENSING_ABOVE,
-            init_ms_ + area * area_ms_, area,
-            config_->board.top + DISP_Z_SEPARATE_DROPLET_ABOVE);
+     SendFormattedCommands(gcode_dispense_move,
+                           part.component_name.c_str(), pad.name.c_str(),
+                           DISP_MOVE_SPEED * 60,
+                           x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
+     SendFormattedCommands(gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
+                           config_->board.top + DISP_Z_DISPENSING_ABOVE,
+                           init_ms_ + area * area_ms_, area,
+                           config_->board.top + DISP_Z_SEPARATE_DROPLET_ABOVE);
 }
 
 void GCodeMachine::Finish() {
-    fprintf(output_, gcode_finish);
+    SendFormattedCommands(gcode_finish);
+}
+
+void GCodeMachine::SendFormattedCommands(const char *format, ...) {
+    static int cnt = 0;
+    cnt++;
+    char *buffer = NULL;
+    va_list ap;
+    va_start(ap, format);
+    int len = vasprintf(&buffer, format, ap);
+    va_end(ap);
+
+    // Now we have a buffer that we can send line-by-line. The write function
+    // is owned by the caller, so they can implement e.g. flow control.
+    const char *pos = buffer;
+    const char *end = buffer + len;
+    while (pos < end) {
+        const char *eol = strchrnul(pos, '\n');
+        // If a template does not have a \n at the end of a line, this is
+        // not allowed.
+        assert(*eol != '\0');  // error in templates above.
+        write_line_(pos, eol - pos + 1);
+        pos = eol + 1;
+    }
+    free(buffer);
 }
