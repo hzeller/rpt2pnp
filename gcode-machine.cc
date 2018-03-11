@@ -68,8 +68,8 @@
 #define PNP_TO_TAPE_SPEED 1000      // moving needle to tape
 #define PNP_TO_BOARD_SPEED 100      // moving component from tape to board
 
-#define DISP_MOVE_SPEED 1000         // move dispensing unit to next pad
-#define DISP_DISPENSE_SPEED 1000     // speed when doing the dispensing down/up
+#define DISP_MOVE_SPEED 400         // move dispensing unit to next pad
+#define DISP_DISPENSE_SPEED 100     // speed when doing the dispensing down/up
 
 #define DISP_Z_DISPENSING_ABOVE 0.3      // Above board when dispensing
 #define DISP_Z_HOVER_ABOVE 2             // Above board when moving around
@@ -82,61 +82,61 @@
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
-G28 X0 Y0  ; Home (x/y) - needle over free space
-G28 Z0     ; Now it is safe to home z
-G21        ; set to mm
-T1         ; Use E1 extruder, our 'A' axis (for PnP component rotation)
-M302       ; cold extrusion override - because it is not actually an extruder.
-G90        ; Use absolute positions in general.
-G92 E0     ; 'home' E axis
+G28 X0 Y0  (Home x/y - needle over free space)
+G28 Z0     (Now it is safe to home z)
+G21        (set to mm)
+T1         (Use E1 extruder, our 'A' axis for PnP component rotation)
+M302       (cold extrusion override - because it is not actually an extruder)
+G90        (Use absolute positions in general)
+G92 E0     ('home' E axis)
 
-G1 Z%.1f E0 ; Move needle out of way
+G1 Z%.1f E0 (Move needle out of way)
 )";
 
 // param: name, move-speed, x, y, zup, zdown, a, zup
 static const char *const gcode_pick = R"(
-;; -- Pick %s
-G0 F%d X%.3f Y%.3f Z%.3f E%.3f ; Move over component to pick.
-G1 Z%-6.2f   F4000 ; move down on tape.
-G4           ; flush buffer
-M42 P6 S255  ; turn on suckage
-G1 Z%-6.3f   ; Move up a bit for travelling
+( -- Pick %s -- )
+G0 F%d X%.3f Y%.3f Z%.3f E%.3f (Move over component to pick.)
+G1 Z%-6.2f   F4000 (move down on tape)
+G4                 (flush buffer)
+M42 P6 S255        (turn on suckage)
+G1 Z%-6.3f         (Move up a bit for travelling)
 )";
 
 // param: name, place-speed, x, y, zup, a, zdown, zup
 static const char *const gcode_place = R"(
-;; -- Place %s
-G0 F%d X%.3f Y%.3f Z%.3f E%.3f ; Move component to place on board.
-G1 Z%-6.3f F4000 ; move down over board thickness.
-G4            ; flush buffer.
-M42 P6 S0     ; turn off suckage
-G4            ; flush buffer.
-M42 P8 S255   ; blow
-G4 P40        ; .. for 40ms
-M42 P8 S0     ; done.
-G1 Z%-6.2f    ; Move up
+( -- Place %s -- )
+G0 F%d X%.3f Y%.3f Z%.3f E%.3f (Move component to place on board.)
+G1 Z%-6.3f F4000 (move down over board thickness)
+G4               (flush buffer.)
+M42 P6 S0        (turn off suckage)
+G4               (flush buffer.)
+M42 P8 S255      (blow)
+G4 P40           (.. for 40ms)
+M42 P8 S0        (done.)
+G1 Z%-6.2f       (Move up)
 )";
 
 // move to new position, above board.
 // param: component-name, pad-name, x, y, hover-z
 static const char *const gcode_dispense_move = R"(
-;; -- component %s, pad %s
-G0 F%d X%.3f Y%.3f Z%.3f ; move there.
+( -- component %s, pad %s -- )
+G0 F%d X%.3f Y%.3f Z%.3f (move there)
 )";
 
 // Dispense paste.
 // param: z-dispense-height, wait-time-ms, area, z-separate-droplet
 static const char *const gcode_dispense_paste =
-    R"(G1 F%d Z%.2f ; Go down to dispense
-M106      ; switch on fan (=solenoid)
-G4 P%-5.1f ; Wait time dependent on area %.2f mm^2
-M107      ; switch off solenoid
-G1 Z%.2f ; high above to have paste separated
+    R"(G1 F%d Z%.2f  (Go down to dispense)
+M106            (switch on fan=solenoid)
+G4 P%-5.1f       (Wait time dependent on area %.2f mm^2)
+M107            (switch off solenoid)
+G1 Z%.2f        (high above to have paste separated)
 )";
 
 static const char *const gcode_finish = R"(
-G28 X0 Y0  ; Home x/y, but leave z clear
-M84        ; stop motors
+G28 X0 Y0  (Home x/y, but leave z clear)
+M84        (stop motors)
 )";
 
 // TODO(hzeller): These helper functions should probably be somewhere
@@ -222,18 +222,8 @@ GCodeMachine::GCodeMachine(FILE *output, float init_ms, float area_ms)
 GCodeMachine::GCodeMachine(int input_fd, int output_fd,
                            float init_ms, float area_ms)
     : GCodeMachine([input_fd, output_fd](const char *str, size_t len) {
-            if (*str == '\0' || *str == '\n' || *str == ';')
+            if (*str == '\0' || *str == '\n' || *str == ';' || *str == '(')
                 return;  // Ignore empty lines or all-comment lines.
-            // Not all GCode interpreters can actually deal with ';'-style
-            // comments when interactive.
-            // Edit them out.
-            for (size_t i = 0; i < len; ++i) {
-                if (str[i] == ';') {
-                    len = i+1;
-                    ((char*)str)[i] = '\n';  // naughty const-cast.
-                    break;
-                }
-            }
             write(output_fd, str, len);
             WaitForOk(input_fd);
         }, init_ms, area_ms) {
@@ -251,7 +241,7 @@ bool GCodeMachine::Init(const PnPConfig *config,
     }
     fprintf(stderr, "Board-thickness = %.1fmm\n",
             config_->board.top - config_->bed_level);
-    SendFormattedCommands("; %s\n", init_comment.c_str());
+    SendFormattedCommands("( %s )\n", init_comment.c_str());
     float highest_tape = config_->board.top;
     for (const auto &t : config_->tape_for_component) {
         highest_tape = std::max(highest_tape, t.second->height());
