@@ -82,6 +82,8 @@
 
 // param: moving needle up.
 static const char *const gcode_preamble = R"(
+M107       (turn off dispensing solenoid)
+M42 P6 S0  (turn off pnp vacuum)
 G28 Y0     (Home y - away from holding bracket)
 G28 X0     (Safe to home X now)
 G28 Z0     (.. and z)
@@ -321,8 +323,6 @@ void GCodeMachine::Finish() {
 }
 
 void GCodeMachine::SendFormattedCommands(const char *format, ...) {
-    static int cnt = 0;
-    cnt++;
     char *buffer = NULL;
     va_list ap;
     va_start(ap, format);
@@ -335,8 +335,8 @@ void GCodeMachine::SendFormattedCommands(const char *format, ...) {
     const char *end = buffer + len;
     while (pos < end) {
         const char *eol = strchrnul(pos, '\n');
-        // If a template does not have a \n at the end of a line, this is
-        // not allowed.
+        // If a formatting string does not have a \n at the end of a line,
+        // this is not allowed as we want to send full lines to write_line_().
         assert(*eol != '\0');  // error in templates above.
         write_line_(pos, eol - pos + 1);
         pos = eol + 1;
