@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <algorithm>
 #include <functional>
@@ -21,6 +22,11 @@
 #include "machine.h"
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
+
+volatile sig_atomic_t interrupt_received = 0;
+static void InterruptHandler(int signo) {
+  interrupt_received = 1;
+}
 
 static const float minimum_milliseconds = 50;
 static const float area_to_milliseconds = 25;  // mm^2 to milliseconds.
@@ -177,6 +183,8 @@ void SolderDispense(const Board &board, Machine *machine) {
     OptimizeParts(&all_pads);
 
     for (const auto &p : all_pads) {
+        if (interrupt_received)
+            break;
         machine->Dispense(*p.first, *p.second);
     }
 }
@@ -215,6 +223,9 @@ void PickNPlace(const PnPConfig *config, const Board &board, Machine *machine) {
         std::sort(list.begin(), list.end(), ComponentHeightComparator(config));
     }
     for (const Part *part : list) {
+        if (interrupt_received)
+            break;
+
         Tape *tape = NULL;
         if (config) {
             tape = FindTapeForPart(config, part);
@@ -404,6 +415,9 @@ int main(int argc, char *argv[]) {
         break;
     }
 
+    signal(SIGTERM, InterruptHandler);
+    signal(SIGINT, InterruptHandler);
+
     std::string all_args;
     for (int i = 0; i < argc; ++i) {
         all_args.append(argv[i]).append(" ");
@@ -420,6 +434,9 @@ int main(int argc, char *argv[]) {
         PickNPlace(config, board, machine);
     }
 
+    if (interrupt_received) {
+        fprintf(stderr, "Got interrupted by Ctrl-C\n");
+    }
     machine->Finish();
 
     delete machine;

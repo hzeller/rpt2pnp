@@ -138,6 +138,11 @@ G1 Z%.2f        (high above to have paste separated)
 )";
 
 static const char *const gcode_finish = R"(
+M107       (turn off dispensing solenoid)
+M42 P6 S0  (turn off pnp vacuum)
+G91        (we want to move z relative)
+G1 Z20     (move above any obstacles)
+G90        (back to sane absolute position default)
 G28 X0 Y0  (Home x/y, but leave z clear)
 M84        (stop motors)
 )";
@@ -225,7 +230,7 @@ GCodeMachine::GCodeMachine(FILE *output, float init_ms, float area_ms)
 GCodeMachine::GCodeMachine(int input_fd, int output_fd,
                            float init_ms, float area_ms)
     : GCodeMachine([input_fd, output_fd](const char *str, size_t len) {
-            if (*str == '\0' || *str == '\n' || *str == ';' || *str == '(')
+            if (len == 0 || *str == '\n' || *str == ';' || *str == '(')
                 return;  // Ignore empty lines or all-comment lines.
             write(output_fd, str, len);
             WaitForOk(input_fd);

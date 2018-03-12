@@ -64,8 +64,12 @@ private:
     GCodeMachine(std::function<void(const char *str, size_t len)> write_line,
                  float init_ms, float area_ms);
 
+    // Define this with empty, if you're not using gcc.
+#define PRINTF_FMT_CHECK(fmt_pos, args_pos)             \
+    __attribute__ ((format (printf, fmt_pos, args_pos)))
+
     // Send the commands to the write_line_() function, line by line.
-    void SendFormattedCommands(const char *format, ...);
+    void SendFormattedCommands(const char *format, ...) PRINTF_FMT_CHECK(2, 3);
 
     std::function<void(const char *str, size_t len)> const write_line_;
     const float init_ms_;
