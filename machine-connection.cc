@@ -7,6 +7,7 @@
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -65,6 +66,47 @@ static bool SetTTYParams(int fd, const char *params) {
     return true;
  }
 
+// Wait for input to become ready for read or timeout reached.
+// If the file-descriptor becomes readable, returns number of milli-seconds
+// left.
+// Returns 0 on timeout (i.e. no millis left and nothing to be read).
+// Returns -1 on error.
+static int AwaitReadReady(int fd, int timeout_millis) {
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(fd, &read_fds);
+
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout_millis * 1000;
+
+    FD_SET(fd, &read_fds);
+    int s = select(fd + 1, &read_fds, NULL, NULL, &tv);
+    if (s < 0)
+        return -1;
+    return tv.tv_usec / 1000;
+}
+
+static int ReadLine(int fd, char *result, int len, bool do_echo) {
+    int bytes_read = 0;
+    char c = 0;
+    while (c != '\n' && c != '\r' && bytes_read < len) {
+        if (read(fd, &c, 1) < 0)
+            return -1;
+        ++bytes_read;
+        *result++ = c;
+        if (do_echo) write(STDERR_FILENO, &c, 1);  // echo back.
+    }
+    *result = '\0';
+    return bytes_read;
+}
+
+/*
+ *
+ *  Public interface functions
+ *
+ */
+
 int OpenMachineConnection(const char *descriptor) {
     if (descriptor == nullptr) return -1;
     const char *comma = strchrnul(descriptor, ',');
@@ -78,4 +120,33 @@ int OpenMachineConnection(const char *descriptor) {
         return -1;
     }
     return fd;
+}
+
+int DiscardPendingInput(int fd, int timeout_ms) {
+    if (fd < 0) return 0;
+    int total_bytes = 0;
+    char buf[128];
+    while (AwaitReadReady(fd, timeout_ms) > 0) {
+        int r = read(fd, buf, sizeof(buf));
+        if (r < 0) {
+            perror("reading trouble");
+            return -1;
+        }
+        total_bytes += r;
+        if (r > 0) write(STDERR_FILENO, buf, r);  // echo back.
+    }
+    return total_bytes;
+}
+
+// 'ok' comes on a single line, maybe followed by something.
+void WaitForOkAck(int fd) {
+    char buffer[512];
+    for (;;) {
+        if (ReadLine(fd, buffer, sizeof(buffer), false) < 0)
+            break;
+        if (strncasecmp(buffer, "ok", 2) == 0)
+            break;
+        // If we didn't get 'ok', it might be an important error message. Print.
+        fprintf(stderr, "%s", buffer);
+    }
 }

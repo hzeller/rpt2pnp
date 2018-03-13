@@ -34,19 +34,17 @@
 #include "machine.h"
 
 #include <assert.h>
-#include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
-
-#include <sys/types.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include "tape.h"
 #include "board.h"
 
 #include "pnp-config.h"
+#include "machine-connection.h"
 
 // TODO: most of these constants should be configurable or deduced from board/
 // configuration.
@@ -148,75 +146,6 @@ G28 X0 Y0  (Home x/y, but leave z clear)
 M84        (stop motors)
 )";
 
-// TODO(hzeller): These helper functions should probably be somewhere
-// else.
-namespace {
-// Wait for input to become ready for read or timeout reached.
-// If the file-descriptor becomes readable, returns number of milli-seconds
-// left.
-// Returns 0 on timeout (i.e. no millis left and nothing to be read).
-// Returns -1 on error.
-static int AwaitReadReady(int fd, int timeout_millis) {
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(fd, &read_fds);
-
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = timeout_millis * 1000;
-
-    FD_SET(fd, &read_fds);
-    int s = select(fd + 1, &read_fds, NULL, NULL, &tv);
-    if (s < 0)
-        return -1;
-    return tv.tv_usec / 1000;
-}
-
-static int ReadLine(int fd, char *result, int len, bool do_echo) {
-    int bytes_read = 0;
-    char c = 0;
-    while (c != '\n' && c != '\r' && bytes_read < len) {
-        if (read(fd, &c, 1) < 0)
-            return -1;
-        ++bytes_read;
-        *result++ = c;
-        if (do_echo) write(STDERR_FILENO, &c, 1);  // echo back.
-    }
-    *result = '\0';
-    return bytes_read;
-}
-
-// Discard all input until nothing is coming anymore within timeout. In
-// particular on first connect, this helps us to get into a clean state.
-static int DiscardAllInput(int fd, int timeout_ms) {
-    int total_bytes = 0;
-    char buf[128];
-    while (AwaitReadReady(fd, timeout_ms) > 0) {
-        int r = read(fd, buf, sizeof(buf));
-        if (r < 0) {
-            perror("reading trouble");
-            return -1;
-        }
-        total_bytes += r;
-        if (r > 0) write(STDERR_FILENO, buf, r);  // echo back.
-    }
-    return total_bytes;
-}
-
-// 'ok' comes on a single line, maybe followed by something.
-static void WaitForOk(int fd) {
-    char buffer[512];
-    for (;;) {
-        if (ReadLine(fd, buffer, sizeof(buffer), false) < 0)
-            break;
-        if (strncasecmp(buffer, "ok", 2) == 0)
-            break;
-        // If we didn't get 'ok', it might be an important error message. Print.
-        fprintf(stderr, "%s", buffer);
-    }
-}
-}
-
 GCodeMachine::GCodeMachine(
     std::function<void(const char *str, size_t len)> write_line,
     float init_ms, float area_ms)
@@ -236,9 +165,9 @@ GCodeMachine::GCodeMachine(int input_fd, int output_fd,
             if (len == 0 || *str == '\n' || *str == ';' || *str == '(')
                 return;  // Ignore empty lines or all-comment lines.
             write(output_fd, str, len);
-            WaitForOk(input_fd);
+            WaitForOkAck(input_fd);
         }, init_ms, area_ms) {
-    DiscardAllInput(input_fd, 1000);  // Start with clean slate.
+    DiscardPendingInput(input_fd, 1000);  // Start with clean slate.
 }
 
 bool GCodeMachine::Init(const PnPConfig *config,

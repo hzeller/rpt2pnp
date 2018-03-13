@@ -15,4 +15,14 @@
 // Returns a bi-directional file-descriptor or -1 if opening failed.
 int OpenMachineConnection(const char *descriptor);
 
+// While there is stuff readable on the file-descriptor, discard the input
+// until there is silence on the wire for "timeout_ms". Helps to get into
+// a clean state. Returns number of bytes discarded.
+int DiscardPendingInput(int fd, int timeout_ms);
+
+// For for "ok" string that 3D printers use as 'flow control'. It is important
+// to wait for this ack after each command sent to he printer otherwise
+// commands might get lost.
+void WaitForOkAck(int fd);
+
 #endif // MACHINE_CONN_H
