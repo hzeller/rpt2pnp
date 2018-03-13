@@ -295,6 +295,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Can't connect to machine. Exiting.\n");
                 return 1;
             }
+            DiscardPendingInput(tty_fd, 1000);  // Start with clean slate.
             out_option = OUT_MACHINE;
             break;
         case 'c':

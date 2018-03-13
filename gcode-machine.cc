@@ -167,7 +167,6 @@ GCodeMachine::GCodeMachine(int input_fd, int output_fd,
             write(output_fd, str, len);
             WaitForOkAck(input_fd);
         }, init_ms, area_ms) {
-    DiscardPendingInput(input_fd, 1000);  // Start with clean slate.
 }
 
 bool GCodeMachine::Init(const PnPConfig *config,
