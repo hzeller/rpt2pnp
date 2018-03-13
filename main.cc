@@ -22,6 +22,7 @@
 #include "machine.h"
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
+#include "machine-connection.h"
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
@@ -43,8 +44,7 @@ static int usage(const char *prog) {
             "\n[Output]\n"
             "\tDefault output is gcode to stdout\n"
             "\t-P      : Preview: Output as PostScript instead of GCode.\n"
-            "\t-m      : Directly connect to machine with STDOUT -> machine,\n"
-            "\t          STDIN <- machine. Use socat to do the 'wiring'.\n"
+            "\t-m<tty> : Connect to machine. Sample \"/dev/ttyACM0,b115200\"\n"
             "\t-O<file>: Output to specified file instead of stdout\n"
             "\n[Choice of components to handle]\n"
             "\t-b      : Handle back-of-board (default: front)\n"
@@ -277,14 +277,20 @@ int main(int argc, char *argv[]) {
     bool handle_top_of_board = true;
     std::set<std::string> blacklist;
     FILE *output = NULL;
+    int tty_fd = -1;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:m")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:m:")) != -1) {
         switch (opt) {
         case 'P':
             out_option = OUT_POSTSCRIPT;
             break;
         case 'm':
+            tty_fd = OpenMachineConnection(optarg);
+            if (tty_fd < 0) {
+                fprintf(stderr, "Can't connect to machine. Exiting.\n");
+                return 1;
+            }
             out_option = OUT_MACHINE;
             break;
         case 'c':
@@ -410,8 +416,7 @@ int main(int argc, char *argv[]) {
         machine = new PostScriptMachine(output);
         break;
     case OUT_MACHINE:
-        machine = new GCodeMachine(STDIN_FILENO, STDOUT_FILENO,
-                                   start_ms, area_ms);
+        machine = new GCodeMachine(tty_fd, tty_fd, start_ms, area_ms);
         break;
     }
 
@@ -435,7 +440,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (interrupt_received) {
-        fprintf(stderr, "Got interrupted by Ctrl-C\n");
+        fprintf(stderr, "Got interrupted by Ctrl-C. Shutting down safely.\n");
     }
     machine->Finish();
 

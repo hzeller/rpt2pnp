@@ -42,8 +42,7 @@ There are one of three operations to choose:
 [Output]
         Default output is gcode to stdout
         -P      : Preview: Output as PostScript instead of GCode.
-        -m      : Directly connect to machine with STDOUT -> machine,
-                  STDIN <- machine. Use socat to do the 'wiring'.
+        -m<tty> : Connect to machine. Sample "/dev/ttyACM0,b115200"
         -O<file>: Output to specified file instead of stdout
 
 [Choice of components to handle]
@@ -88,19 +87,12 @@ option; this is useful to visualize things before messing up a board :)
 Directly connect to machine
 ---------------------------
 
-This is experimental right now. Use socat to connect to your machine, e.g.
-a 3D printer with a serial interface:
+You can directly connect to your machine by specifying the serial interface
+with the `-m` option:
 
 ```
- socat EXEC:"./rpt2pnp -d mykicadfile.rpt" /dev/ttyACM0,rawer,b115200
+ ./rpt2pnp -d mykicadfile.rpt -m /dev/ttyACM0,b115200
 ```
-
-... or a machine running BeagleG:
-
-```
- socat EXEC:"./rpt2pnp -d mykicadfile.rpt" TCP4:beagleg-machine.local:4000
-```
-
 
 G-Code
 ------
