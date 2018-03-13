@@ -26,7 +26,10 @@ static bool SetTTYParams(int fd, const char *params) {
         case 230400: speed = B230400; break;
         case 460800: speed = B460800; break;
         default:
-            fprintf(stderr, "Invalid speed '%s' for device\n", params);
+            fprintf(stderr, "Invalid speed '%s'; valid speeds are "
+                    "[9600, 19200, 38400, 57600, 115200, 230400, 460800]\n",
+                    params);
+            return false;
             break;
         }
     }
