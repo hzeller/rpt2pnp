@@ -85,6 +85,7 @@ static const char *const gcode_preamble = R"(
 M107       (turn off dispensing solenoid)
 M42 P6 S0  (turn off pnp vacuum)
 G28 Y0     (Home y - away from holding bracket)
+G1 Y140    (Printrbot simple specific, otherwise z-probe will not work)
 G28 X0     (Safe to home X now)
 G28 Z0     (.. and z)
 G21        (set to mm)
@@ -141,7 +142,7 @@ static const char *const gcode_finish = R"(
 M107       (turn off dispensing solenoid)
 M42 P6 S0  (turn off pnp vacuum)
 G91        (we want to move z relative)
-G1 Z20     (move above any obstacles)
+G1 Z10     (move above any obstacles)
 G90        (back to sane absolute position default)
 G28 X0 Y0  (Home x/y, but leave z clear)
 M84        (stop motors)
@@ -210,6 +211,8 @@ static void WaitForOk(int fd) {
             break;
         if (strncasecmp(buffer, "ok", 2) == 0)
             break;
+        // If we didn't get 'ok', it might be an important error message. Print.
+        fprintf(stderr, "%s", buffer);
     }
 }
 }
