@@ -26,7 +26,10 @@
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
-  interrupt_received = 1;
+    static const char *const msg = "\nGot interrupted by Ctrl-C. "
+        "Please wait while shutting down safely.\n";
+    write(STDERR_FILENO, msg, strlen(msg));  // safe signal handler syscall.
+    interrupt_received = 1;
 }
 
 static const float minimum_milliseconds = 50;
@@ -439,9 +442,6 @@ int main(int argc, char *argv[]) {
         PickNPlace(config, board, machine);
     }
 
-    if (interrupt_received) {
-        fprintf(stderr, "Got interrupted by Ctrl-C. Shutting down safely.\n");
-    }
     machine->Finish();
 
     delete machine;
