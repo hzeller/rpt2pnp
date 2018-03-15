@@ -96,7 +96,19 @@ with the `-m` option:
 ```
 
 If you supply the `-a` option, you can do interactive adjustment of the origin
-of the board with cursor-keys.
+of the board with cursor-keys; this looks roughly like this:
+
+```
+Find pad '2' of D3 (9.0, 9.1) and touch needle.
+-----------------------------------------
+Cursor keys: move x/y on bed
+             U=needle up, D=needle down
+Default:     0.1mm steps
++CTRL-Key:   1.0mm steps (FAST; careful when up/down)
+-----------------------------------------
+Delta: (-0.5, 48.1) ; top-of-board: 0.6
+-----------------------------------------
+```
 
 G-Code
 ------

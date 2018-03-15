@@ -125,7 +125,7 @@ static bool JogTo(int machine_fd, Position *out, float *z) {
             "Cursor keys: move x/y on bed\n"
             "             U=needle up, D=needle down\n"
             "Default:     0.1mm steps\n"
-            "+CTRL-Key:   1.0mm steps (FAST)\n"
+            "+CTRL-Key:   1.0mm steps (FAST, careful when up/down)\n"
             "-----------------------------------------\n");
     bool success = false;
     bool done = false;
