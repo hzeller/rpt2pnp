@@ -86,7 +86,7 @@ M42 P6 S0  (turn off pnp vacuum)
 
 static const char *const gcode_preamble_homing = R"(
 G28 Y0     (Home y - away from holding bracket)
-G1 Y140    (Printrbot simple specific, otherwise z-probe will not work)
+G91 G1 Y-10 G90 (Printrbot simple specific, otherwise z-probe will not work)
 G28 X0     (Safe to home X now)
 G28 Z0     (.. and z)
 )";

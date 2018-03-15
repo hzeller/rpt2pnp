@@ -219,7 +219,7 @@ bool TerminalJogConfig(const Board &board, int machine_fd, PnPConfig *config) {
 
     SendMachineLine(machine_fd, "G28 Y0\n");
     // The Printrbot simple complains if its phantom probe is too close to board
-    SendMachineLine(machine_fd, "G1 Y140\n");
+    SendMachineLine(machine_fd, "G91 G1 Y-10 G90\n");
     SendMachineLine(machine_fd, "G28 X0\n");
     SendMachineLine(machine_fd, "G28 Z0\n");
     SendMachineLine(machine_fd, "G1 Z%.1f\n", kSafeHovering);
