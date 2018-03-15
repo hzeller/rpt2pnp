@@ -30,6 +30,10 @@ struct Part {
     // The pads are roated around pos with angle.
     std::vector<Pad> pads;       // For paste dispensing and image recognition.
     Box bounding_box;            // relative to pos
+
+    // Given the pad, that is relative to the part and its angle on the board,
+    // Return the absolute center coordinate of the pad relative to the board.
+    Position padAbsPos(const Pad &p) const;
 };
 
 // Representation of the board and its components.

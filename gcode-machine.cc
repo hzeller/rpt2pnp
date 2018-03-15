@@ -79,13 +79,19 @@
 // TODO: The positional arguments are pretty fragile.
 
 // param: moving needle up.
-static const char *const gcode_preamble = R"(
+static const char *const gcode_preamble_safe_state = R"(
 M107       (turn off dispensing solenoid)
 M42 P6 S0  (turn off pnp vacuum)
+)";
+
+static const char *const gcode_preamble_homing = R"(
 G28 Y0     (Home y - away from holding bracket)
 G1 Y140    (Printrbot simple specific, otherwise z-probe will not work)
 G28 X0     (Safe to home X now)
 G28 Z0     (.. and z)
+)";
+
+static const char *const gcode_preamble_defaults = R"(
 G21        (set to mm)
 T1         (Use E1 extruder, our 'A' axis for PnP component rotation)
 M302       (cold extrusion override - because it is not actually an extruder)
@@ -150,7 +156,7 @@ GCodeMachine::GCodeMachine(
     std::function<void(const char *str, size_t len)> write_line,
     float init_ms, float area_ms)
     : write_line_(std::move(write_line)), init_ms_(init_ms), area_ms_(area_ms),
-      config_(NULL) {}
+      config_(NULL), do_homing_(true) {}
 
 GCodeMachine::GCodeMachine(FILE *output, float init_ms, float area_ms)
     : GCodeMachine([output](const char *str, size_t len) {
@@ -185,7 +191,9 @@ bool GCodeMachine::Init(const PnPConfig *config,
     for (const auto &t : config_->tape_for_component) {
         highest_tape = std::max(highest_tape, t.second->height());
     }
-    SendFormattedCommands(gcode_preamble, highest_tape + 10);
+    SendFormattedCommands(gcode_preamble_safe_state);
+    if (do_homing_) SendFormattedCommands(gcode_preamble_homing);
+    SendFormattedCommands(gcode_preamble_defaults, highest_tape + 10);
     return true;
 }
 
@@ -235,19 +243,13 @@ void GCodeMachine::PlacePart(const Part &part, const Tape *tape) {
 }
 
  void GCodeMachine::Dispense(const Part &part, const Pad &pad) {
-     // TODO: so this part looks like we shouldn't have to do it here.
-     const float angle = 2 * M_PI * part.angle / 360.0;
-     const float part_x = config_->board.origin.x + part.pos.x;
-     const float part_y = config_->board.origin.y + part.pos.y;
+     const Position pad_pos = config_->board.origin + part.padAbsPos(pad);
      const float area = pad.size.w * pad.size.h;
-     const float pad_x = pad.pos.x;
-     const float pad_y = pad.pos.y;
-     const float x = part_x + pad_x * cos(angle) - pad_y * sin(angle);
-     const float y = part_y + pad_x * sin(angle) + pad_y * cos(angle);
      SendFormattedCommands(gcode_dispense_move,
                            part.component_name.c_str(), pad.name.c_str(),
                            DISP_MOVE_SPEED * 60,
-                           x, y, config_->board.top + DISP_Z_HOVER_ABOVE);
+                           pad_pos.x, pad_pos.y,
+                           config_->board.top + DISP_Z_HOVER_ABOVE);
      SendFormattedCommands(gcode_dispense_paste, DISP_DISPENSE_SPEED * 60,
                            config_->board.top + DISP_Z_DISPENSING_ABOVE,
                            init_ms_ + area * area_ms_, area,

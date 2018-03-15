@@ -53,6 +53,8 @@ public:
     GCodeMachine(FILE *output, float init_ms, float area_ms);
     GCodeMachine(int input_fd, int output_fd, float init_ms, float area_ms);
 
+    void set_homing(bool h) { do_homing_ = h; }
+
     bool Init(const PnPConfig *config, const std::string &init_comment,
               const Dimension &dimension) override;
     void PickPart(const Part &part, const Tape *tape) override;
@@ -71,10 +73,13 @@ private:
     // Send the commands to the write_line_() function, line by line.
     void SendFormattedCommands(const char *format, ...) PRINTF_FMT_CHECK(2, 3);
 
+#undef PRINTF_FMT_CHECK
+
     std::function<void(const char *str, size_t len)> const write_line_;
     const float init_ms_;
     const float area_ms_;
     const PnPConfig *config_;
+    bool do_homing_;
 };
 
 // A machine simulation that just shows the oiutput in postscript.

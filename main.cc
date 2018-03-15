@@ -23,6 +23,7 @@
 #include "rpt-parser.h"
 #include "rpt2pnp.h"
 #include "machine-connection.h"
+#include "terminal-jog-config.h"
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
@@ -55,6 +56,7 @@ static int usage(const char *prog) {
             "\t-x<list>: Comma-separated list of component references "
             "to exclude\n"
             "\n[Configuration]\n"
+            "\t-a          : Manual Adjustment step before sending to machine\n"
             "\t-t          : Create human-editable config template to "
             "stdout\n"
             "\t-c <config> : read such a config\n"
@@ -279,12 +281,13 @@ int main(int argc, char *argv[]) {
     const char *config_filename = NULL;
     const char *simple_config_filename = NULL;
     bool handle_top_of_board = true;
+    bool do_origin_finder = false;
     std::set<std::string> blacklist;
     FILE *output = NULL;
     int tty_fd = -1;
 
     int opt;
-    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:m:")) != -1) {
+    while ((opt = getopt(argc, argv, "Pc:C:D:tlHpdbx:O:m:a")) != -1) {
         switch (opt) {
         case 'P':
             out_option = OUT_POSTSCRIPT;
@@ -316,6 +319,9 @@ int main(int argc, char *argv[]) {
                 perror("Couldn't open requested output file for write");
                 return 1;
             }
+            break;
+        case 'a':
+            do_origin_finder = true;
             break;
         case 't':
             do_operation = OP_CONFIG_TEMPLATE;
@@ -412,6 +418,11 @@ int main(int argc, char *argv[]) {
         config = CreateEmptyConfiguration();
     }
 
+    if (do_origin_finder) {
+        if (!TerminalJogConfig(board, tty_fd, config))
+            return 1;
+    }
+
     Machine *machine = NULL;
     switch (out_option) {
     case OUT_GCODE:
@@ -422,6 +433,10 @@ int main(int argc, char *argv[]) {
         break;
     case OUT_MACHINE:
         machine = new GCodeMachine(tty_fd, tty_fd, start_ms, area_ms);
+        if (do_origin_finder) {
+            // If we manually found the origin, don't do unnecessary homing.
+            static_cast<GCodeMachine*>(machine)->set_homing(false);
+        }
         break;
     }
 

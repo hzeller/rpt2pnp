@@ -19,6 +19,13 @@ struct Position {
     float x, y;
 };
 
+inline Position operator+(const Position &a, const Position &b) {
+    return { a.x + b.x, a.y + b.y };
+}
+inline Position operator-(const Position &a, const Position &b) {
+    return { a.x - b.x, a.y - b.y };
+}
+
 struct Dimension {
     Dimension(float ww, float hh) : w(ww), h(hh) {}
     Dimension() : w(0), h(0) {}

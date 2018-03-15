@@ -42,14 +42,15 @@ There are one of three operations to choose:
 [Output]
         Default output is gcode to stdout
         -P      : Preview: Output as PostScript instead of GCode.
-        -m<tty> : Connect to machine. Sample "/dev/ttyACM0,b115200"
         -O<file>: Output to specified file instead of stdout
+        -m<tty> : Directly connect to machine. Sample "/dev/ttyACM0,b115200"
 
 [Choice of components to handle]
         -b      : Handle back-of-board (default: front)
         -x<list>: Comma-separated list of component references to exclude
 
 [Configuration]
+        -a          : Manual Adjustment step before sending to machine
         -t          : Create human-editable config template to stdout
         -c <config> : read such a config
         -D<init-ms,area-to-ms> : Milliseconds to leave pressure on to
@@ -93,6 +94,9 @@ with the `-m` option:
 ```
  ./rpt2pnp -d mykicadfile.rpt -m /dev/ttyACM0,b115200
 ```
+
+If you supply the `-a` option, you can do interactive adjustment of the origin
+of the board with cursor-keys.
 
 G-Code
 ------

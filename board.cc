@@ -9,6 +9,12 @@
 
 #include "rpt-parser.h"
 
+Position Part::padAbsPos(const Pad &p) const {
+    const float a = 2 * M_PI * angle / 360.0;
+    return { pos.x + p.pos.x * cos(a) - p.pos.y * sin(a),
+             pos.y + p.pos.x * sin(a) + p.pos.y * cos(a) };
+}
+
 namespace {
     // Helper class to read file from parse events.
     // Collect the parts from parse events.
