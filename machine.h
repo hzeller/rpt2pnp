@@ -12,11 +12,12 @@
 #include <functional>
 
 struct PnPConfig;
-class Dimension;
-class Part;
-class Pad;
+struct Dimension;
+struct Part;
+struct Pad;
+struct Position;
+
 class Tape;
-class Position;
 
 // A machine provides the actions.
 class Machine {
